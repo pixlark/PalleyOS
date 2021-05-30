@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra
+FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra -Iinclude
 
 SRC_DIR=src
 BUILD_DIR=build

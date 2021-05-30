@@ -1,0 +1,6 @@
+[ ] Enable paging (A/P)
+[ ] Terminal output for the kernel (A)
+[ ] Standard library
+   [ ] printf (P)
+   [ ] heap allocator (P)
+[ ] Keyboard input (A)

@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "paging.h"
+
 #if defined(__linux__)
 #error "You are not using the cross compiler, idiot"
 #endif
@@ -9,6 +11,10 @@
 #if !defined(__i386__)
 #error "must use x86"
 #endif
+
+//
+// Text output
+//
 
 /* Hardware text mode color constants. */
 enum vga_color {
@@ -38,7 +44,27 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
+//
+// Paging
+//
+extern void flush_tlb();
+PageDirEntry page_directory[1024];
+
 void kernel_main(void) {
+    // Initialize page directory
+    //for (int i = 0; i < 1024; i++) {
+    //    PageDirEntry entry = 0;
+    //    entry |= 0b001000111;
+    //    entry |= (1 << 31);
+    //    page_directory[i] = entry;
+    //}
+
+    // Map 0x100000 -> 0x000000
+    //     0x1B8000 -> 0x0B8000
+    //page_directory[1] &= ~(1 << 31);
+    
+    //flush_tlb();
+    
 	uint16_t* t_buff = (uint16_t*) 0xB8000;
 	for (size_t y = 0; y < VGA_HEIGHT; y++) {
 		for (size_t x = 0; x < VGA_WIDTH; x++) {
@@ -51,5 +77,4 @@ void kernel_main(void) {
 	t_buff[1] = vga_entry('I', VGA_COLOR_WHITE);
 	t_buff[2] = vga_entry('!', VGA_COLOR_WHITE);
 }
-
 
