@@ -53,3 +53,6 @@ dkms.conf
 
 *.bin
 *.iso
+.*.swp
+.*.swo
+
