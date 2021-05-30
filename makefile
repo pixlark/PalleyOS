@@ -4,26 +4,47 @@ FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra
 
 SRC_DIR=src
 BUILD_DIR=build
+ISO_DIR=isodir
 
 OBJ_DIR=obj
 OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/kernel.o
 
-all: palleyos.bin
+all: $(BUILD_DIR)/palleyos.iso
 
-$(OBJ_DIR): 
-	mkdir -p obj/
+$(BUILD_DIR)/palleyos.iso: $(BUILD_DIR)/palleyos.bin
+	@make --silent make-$(ISO_DIR)
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp src/grub.cfg $(ISO_DIR)/boot/grub/
+	cp $(BUILD_DIR)/palleyos.bin $(ISO_DIR)/boot/
+	grub-mkrescue -o $@ $(ISO_DIR) 2> /dev/null
 
-palleyos.bin: $(OBJS)
-	$(CC) -I $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/$@ $(FLAGS) $(OBJS) -lgcc
-	./check_multiboot.sh
+$(BUILD_DIR)/palleyos.bin: $(OBJS)
+	@make --silent make-$(BUILD_DIR)
+	$(CC) -I $(SRC_DIR)/linker.ld -o $@ $(FLAGS) $(OBJS) -lgcc
+	@./check_multiboot.sh
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@make --silent make-$(OBJ_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
+	@make --silent make-$(OBJ_DIR)
 	$(AS) $< -o $@
 
-clean:
-	rm -rf *.iso *.bin $(OBJ_DIR) *.o
+.PHONY: run clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR)
 
+make-$(OBJ_DIR):
+	@mkdir -p $(OBJ_DIR)
+
+make-$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+
+make-$(ISO_DIR):
+	@mkdir -p $(ISO_DIR)
+
+run: $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso
+
+clean:
+	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)
