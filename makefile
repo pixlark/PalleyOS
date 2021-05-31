@@ -6,9 +6,12 @@ SRC_DIR=src
 BUILD_DIR=build
 ISO_DIR=isodir
 
+STD_LIB_DIR=stdlib
+
 OBJ_DIR=obj
 OBJS=$(OBJ_DIR)/boot.o \
-	$(OBJ_DIR)/kernel.o
+	$(OBJ_DIR)/kernel.o \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o
 
 all: $(BUILD_DIR)/palleyos.iso
 
@@ -32,7 +35,11 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
 	@make --silent make-$(OBJ_DIR)
 	$(AS) $< -o $@
 
-.PHONY: run clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR)
+$(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c
+	@make --silent make-$(STD_LIB_DIR)
+	$(CC) -c $< -o $@ $(FLAGS)
+
+.PHONY: run clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR)
 
 make-$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -42,6 +49,9 @@ make-$(BUILD_DIR):
 
 make-$(ISO_DIR):
 	@mkdir -p $(ISO_DIR)
+
+make-$(STD_LIB_DIR):
+	@mkdir -p obj/$(STD_LIB_DIR)
 
 run: $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso
