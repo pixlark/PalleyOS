@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <idt.h>
 #include <tio.h>
 
 #include "paging.h"
@@ -96,6 +97,8 @@ void kernel_main(void) {
 	term_write("Attempting to enter paging mode\n");
 	enable_paging(page_directory);
 	term_write("In paging mode!\n");
-
+	
+	term_write("Setting up the IDT\n");
+	handle_idt_setup();
 }
 

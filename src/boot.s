@@ -73,3 +73,18 @@ flush_tlb:
     movl %cr3, %eax
     movl %eax, %cr3
     ret
+
+# Function that takes in a pointer to the 
+# IDTInfo struct and loads the idt 
+.global load_idt
+.type load_idt, @function
+load_idt:
+	push %ebp
+	mov %esp, %ebp
+
+	mov 8(%ebp), %eax
+	lidt (%eax)
+	
+	mov %ebp, %esp
+	pop %ebp
+	ret

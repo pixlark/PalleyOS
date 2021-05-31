@@ -11,6 +11,8 @@ STD_LIB_DIR=stdlib
 OBJ_DIR=obj
 OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/kernel.o \
+	$(OBJ_DIR)/idt.o \
+	$(OBJ_DIR)/isr.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o
 
 all: $(BUILD_DIR)/palleyos.iso

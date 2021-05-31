@@ -1,4 +1,6 @@
-[ ] Enable paging (A/P)
+[X] Enable paging (A/P)
+[ ] Set up GDT (A/P)
+[ ] Set up IDT (A/P)
 [ ] Terminal output for the kernel (A)
 [ ] Standard library
    [ ] printf (P)
