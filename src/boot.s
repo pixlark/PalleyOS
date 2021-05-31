@@ -11,7 +11,6 @@
 .long CHECKSUM
 
 .section .bss
-
     
 .align 16
 stack_bottom:
@@ -41,6 +40,30 @@ _start:
 	cli
 1: 	hlt
 	jmp 1b
+
+.global enable_paging
+.type enable_paging, @function
+enable_paging:
+	push %ebp
+	mov %esp, %ebp
+
+	# Input should be pointer to page_directory
+    mov 8(%esp), %eax
+	mov %eax, %cr3
+
+	# Enable PSE (4 MiB pages)
+	mov %cr4, %eax
+	or $0x00000010, %eax 
+	mov %eax, %cr4
+
+	# Enable paging
+	mov %cr0, %eax
+	or $0x80000001, %eax
+	mov %eax, %cr0
+
+	mov %ebp, %esp
+	pop %ebp
+	ret
 
 .size _start, . - _start
 
