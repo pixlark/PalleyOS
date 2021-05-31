@@ -1,8 +1,17 @@
 [X] Enable paging (A/P)
+[ ] Agree upon a general memory map (A/P)
+	- What is non-user-accessible (i.e. kernel code an data)
+	- Where does stack begin, how big
+	- Heap?
 [ ] Set up GDT (A/P)
+	- Rather Straight forward, just set all descriptors and segmentation registers
+	to use all of memory (probably). 0-4GiB. Alternatively, we can have ring 
+	level 0 be one half and ring level 3 be the other half. CS and DS for kernel
+	get one half and CS and DS for user get the other half.
 [ ] Set up IDT (A/P)
 [ ] Terminal output for the kernel (A)
 [ ] Standard library
    [ ] printf (P)
    [ ] heap allocator (P)
 [ ] Keyboard input (A)
+[ ] Saving and loading to Disk ( )
