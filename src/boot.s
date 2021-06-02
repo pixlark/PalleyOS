@@ -17,24 +17,13 @@ stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
 
+
 .section .text
 .global _start
 .type _start, @function
 _start:
 	mov $stack_top, %esp
-
-    ## Enable paging
-    #mov $page_directory, %eax
-    #mov %eax, %cr3
-    #mov %cr0, %eax
-    #or  0x80000001, %eax
-    #mov %eax, %cr0
-
-    ## Enable PSE (4 MiB pages)
-    #mov %cr4, %eax
-    #or  %eax, 0x00000010
-    #mov %eax, %cr4
-    
+   
 	call kernel_main
 
 	cli
@@ -88,3 +77,20 @@ load_idt:
 	mov %ebp, %esp
 	pop %ebp
 	ret
+
+.extern gp
+# setGdt(uint32_t* GDT, uint16_t sizeof(GDT))
+.global gdt_flush
+.type gdt_flush, @function
+gdt_flush:
+	lgdt (gp)
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %ax, %ss
+	ljmp $0x08, $.reload_CS 
+.reload_CS:
+	ret
+
