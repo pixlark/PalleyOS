@@ -9,6 +9,8 @@
 	level 0 be one half and ring level 3 be the other half. CS and DS for kernel
 	get one half and CS and DS for user get the other half.
 [ ] Set up IDT (A/P)
+   [ ] Detect if using PIC or APIC. Disable APIC and use PIC? (Might be easier)
+   	   APIC is used for sending interrupts between processors (probably too advanced for right now)
 [ ] Terminal output for the kernel (A)
 [ ] Standard library
    [ ] printf (P)
