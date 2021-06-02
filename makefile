@@ -13,6 +13,7 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/kernel.o \
 	$(OBJ_DIR)/idt.o \
 	$(OBJ_DIR)/isr.o \
+	$(OBJ_DIR)/gdt.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o
 
 all: $(BUILD_DIR)/palleyos.iso
@@ -58,6 +59,8 @@ make-$(STD_LIB_DIR):
 run: $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso
 
+run server: $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso -s
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)
