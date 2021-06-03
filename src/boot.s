@@ -26,6 +26,8 @@ _start:
    
 	call kernel_main
 
+	int $52
+
 	cli
 1: 	hlt
 	jmp 1b
@@ -65,17 +67,11 @@ flush_tlb:
 
 # Function that takes in a pointer to the 
 # IDTInfo struct and loads the idt 
+.extern idt_info
 .global load_idt
 .type load_idt, @function
 load_idt:
-	push %ebp
-	mov %esp, %ebp
-
-	mov 8(%ebp), %eax
-	lidt (%eax)
-	
-	mov %ebp, %esp
-	pop %ebp
+	lidt (idt_info)
 	ret
 
 .extern gp
