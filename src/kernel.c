@@ -4,7 +4,9 @@
 
 #include <idt.h>
 #include <tio.h>
+#include <timer.h>
 #include <gdt.h>
+#include <cpuid.h>
 
 #include "paging.h"
 
@@ -68,6 +70,10 @@ void kernel_main(void) {
 	term_write("Setting up the IDT\n");
 	handle_idt_setup();
 
-	/* Test Interrupt */
+	/* Init Timer and PIT */
+	init_timer();
+	
+	load_cpuid();
+	print_cpuid_vendor();
 }
 

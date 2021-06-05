@@ -4,6 +4,7 @@
 
 #include <idt.h>
 #include <tio.h>
+#include <io.h>
 
 #define PIC1			0x20	/* IO base Address for master PIC */
 #define PIC_EOI			0x20
@@ -14,6 +15,8 @@
 #define PIC2_DATA		(PIC2+1)
 
 
+#define ICW1	0x11
+#define ICW4	0x01
 #define ICW1_ICW4	0x01		/* ICW4 (not) needed */
 #define ICW1_SINGLE	0x02		/* Single (cascade) mode */
 #define ICW1_INTERVAL4	0x04		/* Call address interval 4 (8) */
@@ -85,18 +88,36 @@ void keyboard_interrupt_handler(){
 	term_write("key pressed!\n");
 }
 
-void handle_idt_setup() {
-	// PIC init
-	//outb(PIC1_DATA, 0xFD);
-	//outb(PIC2_DATA, 0xFF);
-	//asm("sti\n");
+extern void invalid_opcode_isr(void);
+void invalid_opcode_handler(uint32_t in) {
+	term_write("Invalid Opcode!\n");
+	term_write("eip: ");
+	term_write_uint32(in, 16);
+	term_write("\n");
+	while(true);
+}
 
+extern void bound_range_isr();
+void bound_range_exceeded_handler(){
+	term_write("Out of bounds fault\n");
+	while(true);
+}
+
+extern void IRQ0_handler();
+
+void handle_idt_setup() {
+	disable_interrupts();
+	init_pics(0x20, 0x28);
+	enable_interrupts();
 
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.offset = (uint32_t) &idt_entries;
 
-	// Adding Keyboard ISR
-	//add_isr_to_idt(1, &keyboard_isr, 0, INTERRUPT_GATE_32);	
+	add_isr_to_idt(0, &IRQ0_handler, 0, INTERRUPT_GATE_32);
+	for(int i = 0; i < 256; i++)
+		add_isr_to_idt(i, &keyboard_isr, 0, INTERRUPT_GATE_32);	
+	add_isr_to_idt(5, &bound_range_isr, 0, TRAP_GATE_32);
+	add_isr_to_idt(6, &invalid_opcode_isr, 0, TRAP_GATE_32);
 
 	if(!add_isr_to_idt(52, &test_isr, 0, INTERRUPT_GATE_32)) {
 		term_write("unable to add isr\n");
@@ -107,73 +128,64 @@ void handle_idt_setup() {
 	term_write("idt_entries loc: ");
 	term_write_uint32((uint32_t) idt_entries, 16);
 	term_write("\n");
+
 }
-
-
-/* I/O Assembly */
-static inline void outb(uint16_t port, uint8_t val) {
-	asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
-}
-
-static inline uint8_t inb(uint16_t port) {
-	uint8_t ret;
-	asm volatile ( "inb %1, %0" 
-					: "=a"(ret)
-					: "Nd"(port) );
-	return ret;
-}
-
-static inline void io_wait(void) {
-	asm volatile ( "jmp 1f\n\t"
-					"1: jmp 2f\n\t"
-					"2:" );
-}
-
-static bool are_interrupts_enabled() {
-	unsigned long flags;
-	asm volatile ( "pushf\n\t"
-					"pop %0"
-					: "=g"(flags) );
-	return flags & (1 << 9);
-}
-
-void PIC_sendEOI(unsigned char irq) {
-	if(irq >= 8)
-		outb(PIC2_COMMAND, PIC_EOI);
-	outb(PIC1_COMMAND, PIC_EOI);
-}
-
 /*
-arguments:
-	offset1 - vector offset for master PIC
-		vectors on the master become offset1..offset1+7
-	offset2 - same for slave PIC: offset2..offset2+7
+ We need to remap the PIC, because the original placing of it (0x0-0xF)
+ Interferes with the exception handling (Design Flaw)
+
+ offset1 - vector offset for master PIC
+ 		vectors on the master will become offset1...offset1+7
+ offset2 - vector offset for master PIC
+ 		vectors on the slave PIC will become offset2..offset2+7
 */
-void PIC_remap(int offset1, int offset2)
-{
-	unsigned char a1, a2;
- 
-	a1 = inb(PIC1_DATA);                        // save masks
-	a2 = inb(PIC2_DATA);
- 
-	outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);  // starts the initialization sequence (in cascade mode)
+void init_PIC(int offset1, int offset2) {
+	// Save Masks
+	outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); // Start init sequence
 	io_wait();
 	outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
 	io_wait();
-	outb(PIC1_DATA, offset1);                 // ICW2: Master PIC vector offset
+
+	outb(PIC1_DATA, offset1);	// ICW2: Master PIC vector offset
 	io_wait();
-	outb(PIC2_DATA, offset2);                 // ICW2: Slave PIC vector offset
+
+	outb(PIC2_DATA, offset2);	// ICW2: Slave PIC vector offset
 	io_wait();
-	outb(PIC1_DATA, 4);                       // ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
+
+	outb(PIC1_DATA, 4); 		// ICW3: tell Master PIC that there
+								// is a slave PIC at IRQ2 (0000 0100)
 	io_wait();
-	outb(PIC2_DATA, 2);                       // ICW3: tell Slave PIC its cascade identity (0000 0010)
+
+	outb(PIC2_DATA, 2);			// ICW3: Tell slave PIC its cascade identity
 	io_wait();
- 
+
 	outb(PIC1_DATA, ICW4_8086);
 	io_wait();
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
- 
-	outb(PIC1_DATA, a1);   // restore saved masks.
-	outb(PIC2_DATA, a2);
+
+	outb(PIC1_DATA, 0x00);
+	outb(PIC2_DATA, 0x00);
+}
+
+void init_pics(int pic1, int pic2)
+{
+   /* send ICW1 */
+   outb(PIC1, ICW1);
+   outb(PIC2, ICW1);
+
+   /* send ICW2 */
+   outb(PIC1 + 1, pic1);   
+   outb(PIC2 + 1, pic2);   
+
+   /* send ICW3 */
+   outb(PIC1 + 1, 4);   
+   outb(PIC2 + 1, 2);
+
+   /* send ICW4 */
+   outb(PIC1 + 1, ICW4);
+   outb(PIC2 + 1, ICW4);
+
+   /* disable all IRQs */
+   outb(PIC1 + 1, 0x00);
 }

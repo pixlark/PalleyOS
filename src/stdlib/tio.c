@@ -86,6 +86,8 @@ void term_write_int32(int32_t n, unsigned int base) {
 		len ++;	
 		cpy /= base;
 	}	
+
+	if(len == 0) len++;
 	
 	if(negative) len += 1;
 		
@@ -119,7 +121,7 @@ void term_write_uint32(uint32_t n, unsigned int base) {
 	else if(base == 8) term_write("0");
 
 	// Calculate length
-	uint8_t len = 1;
+	uint8_t len = 0;
 	int cpy = n;
 	while(cpy > 0){
 		len ++;	

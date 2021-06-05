@@ -26,8 +26,6 @@ _start:
    
 	call kernel_main
 
-	int $52
-
 	cli
 1: 	hlt
 	jmp 1b
