@@ -66,6 +66,8 @@ void kernel_main(void) {
 
 	/* Set up IDT */
 	term_write("Setting up the IDT\n");
-	//handle_idt_setup();
+	handle_idt_setup();
+
+	/* Test Interrupt */
 }
 
