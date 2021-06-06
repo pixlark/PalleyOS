@@ -72,7 +72,7 @@ void kernel_main(void) {
     kprintf("%x\n", 0xDEADBEEF);
     
 	/* Init Timer and PIT */
-	init_timer();
+//	init_timer();
 	
 	load_cpuid();
 	print_cpuid_vendor();

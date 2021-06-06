@@ -3,7 +3,7 @@
 	- What is non-user-accessible (i.e. kernel code an data)
 	- Where does stack begin, how big
 	- Heap?
-[ ] Set up GDT (A/P)
+[X] Set up GDT (A/P)
 	- Rather Straight forward, just set all descriptors and segmentation registers
 	to use all of memory (probably). 0-4GiB. Alternatively, we can have ring 
 	level 0 be one half and ring level 3 be the other half. CS and DS for kernel

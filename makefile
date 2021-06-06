@@ -20,8 +20,8 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/keyboard_io.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/timer.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o
+	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o 
 
 all: $(BUILD_DIR)/palleyos.iso
 
@@ -34,7 +34,7 @@ $(BUILD_DIR)/palleyos.iso: $(BUILD_DIR)/palleyos.bin
 
 $(BUILD_DIR)/palleyos.bin: $(OBJS)
 	@make --silent make-$(BUILD_DIR)
-	$(CC) -I $(SRC_DIR)/linker.ld -o $@ $(FLAGS) $(OBJS) -lgcc
+	$(CC) -T $(SRC_DIR)/linker.ld -o $@ $(FLAGS) $(OBJS) -lgcc
 	@./check_multiboot.sh
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c

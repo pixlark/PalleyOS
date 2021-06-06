@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <tio.h>
+
+#include "tio.h"
 
 uint16_t* video_buff = (uint16_t*) 0xB8000;
 
@@ -20,6 +21,10 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
+int testing_function(int j) {
+	return j+20;
+}
+
 void inc_cursor() {
 	term_col++;
 	if(term_col >= TERM_WIDTH) {
@@ -29,6 +34,7 @@ void inc_cursor() {
 
 	if(term_row >= TERM_HEIGHT-1) shift_term_line_up(1);
 }
+
 
 inline void term_write_char(char c) {
 	term_write_char_color(c, VGA_COLOR_WHITE);

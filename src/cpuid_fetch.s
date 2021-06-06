@@ -9,7 +9,7 @@
 is_CPUID_available:
 	pushfl					# Save EFLAGS
 	pushfl					# Store EFLAGS
-	xor $0x00200000, (%esp)	# Invert the ID bit in stored EFLAGS
+	xorl $0x00200000, (%esp)	# Invert the ID bit in stored EFLAGS
 	popfl					# Load stored EFLAGS (ID may or may not be changed)
 	pushfl					# Store EFLAGS again
 	pop %eax				# eax = modified EFLAGS (ID may or may not be changed)

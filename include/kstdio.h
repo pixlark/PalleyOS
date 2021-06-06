@@ -5,7 +5,7 @@
 #ifndef KSTDIO_H
 #define KSTDIO_H
 
-#include <stdarg.h>
+#include <va_list.h>
 
 void kvsprintf(char* result, const char* format, va_list args);
 void ksprintf(char* result, const char* format, ...);

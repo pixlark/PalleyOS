@@ -7,22 +7,24 @@
 #define PS2	0x60
 #define RESEND 0xFE
 #define ECHO	0xEE
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 256
 
 uint8_t scan_code_queue[QUEUE_SIZE];
-uint8_t queue_index;
+uint8_t queue_widx = 0;
+uint8_t queue_ridx = 0;
 
 /* Called from isr.s */
 void keyboard_interrupt_handler(){
 	uint8_t scan_code = inb(0x60);
-	if(queue_index < QUEUE_SIZE-1)
-		scan_code_queue[queue_index++] = scan_code;
+	scan_code_queue[queue_widx++] = scan_code;
 	send_EOI();
 }
 
 /* Returns keyboard response or 1 on error */
-uint8_t send_command(uint8_t command) {
+uint8_t ps2_send_sub_command(uint8_t command, int8_t subcommand) {
 	outb(PS2, command);
+	if(subcommand > 0)
+		outb(PS2, subcommand);
 
 	int count = 0;
 	int ret;
@@ -38,8 +40,16 @@ uint8_t send_command(uint8_t command) {
 	return ret;
 }
 
+uint8_t ps2_send_command(uint8_t command){
+	return ps2_send_sub_command(command, -1);
+}
+
+bool ps2_set_keyset(uint8_t set_num) {
+	return ps2_send_sub_command(0xF0, 2) != RESEND;
+}
+
 void setup_keyboard() {
-	uint8_t echo = send_command(ECHO);
+	uint8_t echo = ps2_send_command(ECHO);
 	if(echo != 1)
 		term_write("Echo to keyboard recieved\n");		
 	else {
@@ -47,17 +57,20 @@ void setup_keyboard() {
 		return;
 	}
 
-	send_command(0xF0);
-	outb(PS2, 0);
-	int set = inb(PS2);
-	term_write_int(set, 16);
-
+	if(ps2_set_keyset(2))
+		term_write("Keyset is 2\n");
+	else 
+		term_write("Could not set keyset\n");
 }
 
 void handle_scancode_queue() {
 	while(true) {
-		if(queue_index > 0){
-			
+		if(queue_ridx != queue_widx){
+			disable_interrupts();
+
+			term_write_uint32(scan_code_queue[queue_ridx], 16);
+			queue_ridx++;
+			enable_interrupts();		
 		}
 	}
 }

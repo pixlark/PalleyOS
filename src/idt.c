@@ -108,7 +108,7 @@ void overflow_handler() {
 // Bound Range Exceeded Fault (5)
 extern void bound_range_isr();
 void bound_range_exceeded_handler(){
-	term_write("Out of bounds fault\n");
+	//term_write("Out of bounds fault\n");
 	while(true);
 }
 
@@ -243,8 +243,6 @@ void handle_idt_setup() {
 	add_isr_to_idt(19, &simd_fpe_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(20, &virt_isr, 0, TRAP_GATE_32);
 
-
-
 	for(int i = 0x20; i < 0x20+16; i++)
 		add_isr_to_idt(i, &keyboard_isr, 0, INTERRUPT_GATE_32);	
 
@@ -273,6 +271,9 @@ void init_PIC(int offset1, int offset2) {
 	outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
 	io_wait();
 
+	/* The init sequence looks for three other "configuration commands"
+	   Basically just reads three more bytes */
+
 	outb(PIC1_DATA, offset1);	// ICW2: Master PIC vector offset
 	io_wait();
 
@@ -286,7 +287,7 @@ void init_PIC(int offset1, int offset2) {
 	outb(PIC2_DATA, 2);			// ICW3: Tell slave PIC its cascade identity
 	io_wait();
 
-	outb(PIC1_DATA, ICW4_8086);
+	outb(PIC1_DATA, ICW4_8086);	// ICW4: tells other info about the environment
 	io_wait();
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
@@ -294,5 +295,3 @@ void init_PIC(int offset1, int offset2) {
 	outb(PIC1_DATA, 0xFC );
 	outb(PIC2_DATA, 0xFF ^ 0x20);
 }
-
-

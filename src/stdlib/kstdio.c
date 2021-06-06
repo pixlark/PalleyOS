@@ -1,4 +1,4 @@
-#include <stdarg.h>
+#include <va_list.h>
 #include <stddef.h>
 #include <stdint.h>
 
