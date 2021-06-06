@@ -24,7 +24,6 @@ PIT_reload_value:			.word 0 # Current PIT value
 IRQ0_frequency:				.long 0 # Actual frequency used
 
 .section .text
-
 .extern TimerIRQ
 .global IRQ0_handler
 .type IRQ0_handler, @function

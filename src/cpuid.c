@@ -17,7 +17,7 @@ extern uint32_t is_CPUID_available();
 bool fetch_cpuid() {
 
 	uint32_t buff[3];
-	uint32_t ret = load_cpu_vendor_name(buff);
+	load_cpu_vendor_name(buff);
 
 
 	int i = 0;
@@ -48,7 +48,7 @@ void load_cpuid() {
 	}
 	
 	fetch_cpuid();	
-	load_cpuid_features(&cpuid.ecx_features, &cpuid.edx_features);
+	load_cpuid_features((intptr_t)&cpuid.ecx_features, (intptr_t)&cpuid.edx_features);
 	
 	if(cpuid.edx_features & (1 << 9)) {
 		term_write("Has Built in APIC!\n");

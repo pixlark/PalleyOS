@@ -22,6 +22,8 @@ void keyboard_interrupt_handler(){
 
 /* Returns keyboard response or 1 on error */
 uint8_t send_command(uint8_t command) {
+	outb(PS2, command);
+
 	int count = 0;
 	int ret;
 	while(count < 10){

@@ -1,5 +1,6 @@
 # This file handles fetching data from the CPUID
 
+.section .text
 # Check is CPUID is supported by attempting to change the "ID" bit (0x0020_0000) in eflags
 # this is modifiable only when CPUID is supported
 .extern test_print

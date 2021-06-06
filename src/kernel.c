@@ -41,10 +41,6 @@ void kernel_main(void) {
         page_directory[i] = entry;
     }
 
-	term_write("Page Directory addr: ");
-	term_write_uint32(page_directory, 16);
-	term_write("\n");
-
 	// Set up Identity Paging
 	// frame #00 -> 00000000...000fffff
 	// frame #01 -> 00400000...004fffff

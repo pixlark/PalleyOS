@@ -6,5 +6,7 @@
 #include <stdbool.h>
 
 void print_cpuid_vendor();
+void load_cpuid();
+void load_cpuid_features(intptr_t, intptr_t);
 
 #endif
