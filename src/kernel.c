@@ -8,6 +8,7 @@
 #include <gdt.h>
 #include <cpuid.h>
 #include <keyboard_io.h>
+#include <kstdio.h>
 
 #include "paging.h"
 

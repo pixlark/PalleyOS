@@ -1,5 +1,8 @@
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdint.h>
+
+#include <tio.h>
 
 static void render_integer(char* result, size_t* result_i, int32_t to_render) {
     if (to_render < 0) {
@@ -125,7 +128,7 @@ void ksprintf(char* result, const char* format, ...) {
 void kvprintf(const char* format, va_list args) {
     char result[1024];
     kvsprintf(result, format, args);
-    printf("%s", result);
+    term_write(result);
 }
 
 void kprintf(const char* format, ...) {
