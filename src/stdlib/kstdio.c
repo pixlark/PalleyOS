@@ -1,110 +1,74 @@
-#include <va_list.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include <tio.h>
 
-static void render_integer(char* result, size_t* result_i, int32_t to_render) {
+static void render_integer(char* result, uint32_t* result_i, int32_t to_render) {
     if (to_render < 0) {
         result[*result_i] = '-';
         *result_i += 1;
         to_render *= -1;
     }
     
-    size_t digits = 1;
-    { // Count # of digits
-        size_t iter = to_render;
-        while (1) {
-            if (iter < 10) {
-                break;
-            }
-            iter /= 10;
-            digits++;
+    int32_t iter = to_render;
+    uint8_t buffer[32];
+    size_t i = 0;
+    while (true) {
+        buffer[i++] = iter % 10;
+        iter /= 10;
+        if (iter == 0) {
+            break;
         }
     }
-    { // Render digits
-        size_t place = 1;
-        for (size_t i = 0; i < digits - 1; i++) {
-            place *= 10;
-        }
-        for (size_t i = 0; i < digits; i++) {
-            size_t digit = to_render;
-            digit %= (10 * place);
-            digit /= place;
-            
-            result[*result_i] = digit + '0';
-            *result_i += 1;
-
-            place /= 10;
-        }
+    for (int32_t j = i - 1; j >= 0; j--) {
+        result[*result_i] = buffer[j] + '0';
+        *result_i += 1;
     }
 }
 
-static void render_unsigned_integer(char* result, size_t* result_i, uint32_t to_render) {
-    size_t digits = 1;
-    { // Count # of digits
-        size_t iter = to_render;
-        while (1) {
-            if (iter < 10) {
-                break;
-            }
-            iter /= 10;
-            digits++;
+static void render_unsigned_integer(char* result, uint32_t* result_i, uint32_t to_render) {
+    uint32_t iter = to_render;
+    uint8_t buffer[32];
+    size_t i = 0;
+    while (true) {
+        buffer[i++] = iter % 10;
+        iter /= 10;
+        if (iter == 0) {
+            break;
         }
     }
-    { // Render digits
-        size_t place = 1;
-        for (size_t i = 0; i < digits - 1; i++) {
-            place *= 10;
-        }
-        for (size_t i = 0; i < digits; i++) {
-            size_t digit = to_render;
-            digit %= (10 * place);
-            digit /= place;
-            
-            result[*result_i] = digit + '0';
-            *result_i += 1;
-
-            place /= 10;
-        }
-    }    
+    for (int32_t j = i - 1; j >= 0; j--) {
+        result[*result_i] = buffer[j] + '0';
+        *result_i += 1;
+    }
 }
 
-static void render_hexadecimal(char* result, size_t* result_i, uint32_t to_render) {
-    size_t digits = 1;
-    { // Count # of digits
-        size_t iter = to_render;
-        while (1) {
-            if (iter < 16) {
-                break;
-            }
-            iter /= 16;
-            digits++;
+static void render_hexadecimal(char* result, uint32_t* result_i, uint32_t to_render) {
+    uint32_t iter = to_render;
+    uint8_t buffer[32];
+    size_t i = 0;
+    while (true) {
+        buffer[i++] = iter % 16;
+        iter /= 16;
+        if (iter == 0) {
+            break;
         }
     }
     char hex_digits[] = {
-        '0', '1', '2', '3', '4', '5', '6', '7',
-        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+        '0', '1', '2', '3',
+        '4', '5', '6', '7',
+        '8', '9', 'a', 'b',
+        'c', 'd', 'e', 'f'
     };
-    { // Render digits
-        size_t place = 1;
-        for (size_t i = 0; i < digits - 1; i++) {
-            place *= 16;
-        }
-        for (size_t i = 0; i < digits; i++) {
-            size_t digit = to_render;
-            digit %= (16 * place);
-            digit /= place;
-
-            result[*result_i] = hex_digits[digit];
-            *result_i += 1;
-
-            place /= 16;
-        }
-    }    
+    for (int32_t j = i - 1; j >= 0; j--) {
+        result[*result_i] = hex_digits[buffer[j]];
+        *result_i += 1;
+    }
 }
 
-static void render_string(char* result, size_t* result_i, char* to_render) {
+static void render_string(char* result, uint32_t* result_i, char* to_render) {
     while (*to_render != '\0') {
         result[*result_i] = *to_render;
         *result_i += 1;
@@ -113,8 +77,8 @@ static void render_string(char* result, size_t* result_i, char* to_render) {
 }
 
 void kvsprintf(char* result, const char* format, va_list args) {
-    size_t result_i = 0;
-    size_t format_i = 0;
+    uint32_t result_i = 0;
+    uint32_t format_i = 0;
     
     while (format[format_i] != '\0') {
         if (format[format_i] == '%') {
