@@ -56,14 +56,6 @@ static inline void enable_interrupts() {
 	asm volatile ("sti");
 }
 
-static bool are_interrupts_enabled() {
-	unsigned long flags;
-	asm volatile ( "pushf\n\t"
-					"pop %0"
-					: "=g"(flags) );
-	return flags & (1 << 9);
-}
-
 static inline void send_EOI() {
 	outb(0x20, 0x20);
 	outb(0xa0, 0x20);

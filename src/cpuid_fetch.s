@@ -1,5 +1,6 @@
 # This file handles fetching data from the CPUID
 
+.section .text
 # Check is CPUID is supported by attempting to change the "ID" bit (0x0020_0000) in eflags
 # this is modifiable only when CPUID is supported
 .extern test_print
@@ -8,7 +9,7 @@
 is_CPUID_available:
 	pushfl					# Save EFLAGS
 	pushfl					# Store EFLAGS
-	xor $0x00200000, (%esp)	# Invert the ID bit in stored EFLAGS
+	xorl $0x00200000, (%esp)	# Invert the ID bit in stored EFLAGS
 	popfl					# Load stored EFLAGS (ID may or may not be changed)
 	pushfl					# Store EFLAGS again
 	pop %eax				# eax = modified EFLAGS (ID may or may not be changed)

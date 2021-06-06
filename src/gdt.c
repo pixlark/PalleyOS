@@ -63,7 +63,7 @@ void setup_gdt() {
 	term_write("\n");
 
 	gp.limit = (sizeof(struct GDTEntry) * 3) - 1;
-	gp.base = &GDT;
+	gp.base = (uint32_t)&GDT;
 	
 	/* Flush out the old GDT and install the new changes */
 	gdt_flush();

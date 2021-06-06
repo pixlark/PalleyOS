@@ -1,8 +1,8 @@
-#include <stdint.h>
-#include <stddef.h>
-
 #ifndef TIO_H
 #define TIO_H
+
+#include <stdint.h>
+#include <stddef.h>
 
 typedef enum {
 	VGA_COLOR_BLACK = 0,

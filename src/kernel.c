@@ -41,10 +41,6 @@ void kernel_main(void) {
         page_directory[i] = entry;
     }
 
-	term_write("Page Directory addr: ");
-	term_write_uint32(page_directory, 16);
-	term_write("\n");
-
 	// Set up Identity Paging
 	// frame #00 -> 00000000...000fffff
 	// frame #01 -> 00400000...004fffff
@@ -67,17 +63,20 @@ void kernel_main(void) {
 	/* Set up GDT */	
 	term_write("Setting up GDT\n");
 	setup_gdt();
-
+    
 	/* Set up IDT */
 	term_write("Setting up the IDT\n");
 	handle_idt_setup();
 
+    // 3735928559
+    kprintf("%x\n", 0xDEADBEEF);
+    
 	/* Init Timer and PIT */
-	init_timer();
+//	init_timer();
 	
 	load_cpuid();
 	print_cpuid_vendor();
-
+    
 	setup_keyboard();
 }
 
