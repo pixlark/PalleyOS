@@ -26,9 +26,7 @@ _start:
    
 	call kernel_main
 
-	cli
-1: 	hlt
-	jmp 1b
+	jmp .
 
 .global enable_paging
 .type enable_paging, @function

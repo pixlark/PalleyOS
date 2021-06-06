@@ -7,6 +7,7 @@
 #include <timer.h>
 #include <gdt.h>
 #include <cpuid.h>
+#include <keyboard_io.h>
 
 #include "paging.h"
 
@@ -75,5 +76,7 @@ void kernel_main(void) {
 	
 	load_cpuid();
 	print_cpuid_vendor();
+
+	setup_keyboard();
 }
 

@@ -83,10 +83,6 @@ void test_interrupt_handler(){
 	term_write("Inside interrupt!\n");	
 }
 
-extern void keyboard_isr(void);
-void keyboard_interrupt_handler(){
-	term_write("key pressed!\n");
-}
 
 extern void invalid_opcode_isr(void);
 void invalid_opcode_handler(uint32_t in) {
@@ -103,19 +99,37 @@ void bound_range_exceeded_handler(){
 	while(true);
 }
 
+extern void general_prot_fault_isr();
+void general_prot_fault_handler(uint32_t err) {
+	term_write("General Protection Fault, error code: ");
+	term_write_uint32(err, 16);
+	while(true);	
+}
+
+extern void double_fault_isr();
+void double_fault_handler() {
+	term_write("Double fault\n");
+	while(true);
+}
+
 extern void IRQ0_handler();
+extern void keyboard_isr(void);
+
+void init_PIC(int, int);
 
 void handle_idt_setup() {
 	disable_interrupts();
-	init_pics(0x20, 0x28);
-	enable_interrupts();
+	init_PIC(0x20, 0x28);
 
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.offset = (uint32_t) &idt_entries;
 
 	add_isr_to_idt(0, &IRQ0_handler, 0, INTERRUPT_GATE_32);
-	for(int i = 0; i < 256; i++)
+
+	for(int i = 0x20; i < 0x20+16; i++)
 		add_isr_to_idt(i, &keyboard_isr, 0, INTERRUPT_GATE_32);	
+
+	add_isr_to_idt(13, &general_prot_fault_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(5, &bound_range_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(6, &invalid_opcode_isr, 0, TRAP_GATE_32);
 
@@ -128,6 +142,7 @@ void handle_idt_setup() {
 	term_write("idt_entries loc: ");
 	term_write_uint32((uint32_t) idt_entries, 16);
 	term_write("\n");
+	enable_interrupts();
 
 }
 /*
@@ -164,28 +179,7 @@ void init_PIC(int offset1, int offset2) {
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
 
-	outb(PIC1_DATA, 0x00);
-	outb(PIC2_DATA, 0x00);
+	outb(PIC1_DATA, 0xFC );
+	outb(PIC2_DATA, 0xFF ^ 0x20);
 }
 
-void init_pics(int pic1, int pic2)
-{
-   /* send ICW1 */
-   outb(PIC1, ICW1);
-   outb(PIC2, ICW1);
-
-   /* send ICW2 */
-   outb(PIC1 + 1, pic1);   
-   outb(PIC2 + 1, pic2);   
-
-   /* send ICW3 */
-   outb(PIC1 + 1, 4);   
-   outb(PIC2 + 1, 2);
-
-   /* send ICW4 */
-   outb(PIC1 + 1, ICW4);
-   outb(PIC2 + 1, ICW4);
-
-   /* disable all IRQs */
-   outb(PIC1 + 1, 0x00);
-}

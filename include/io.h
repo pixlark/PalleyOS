@@ -64,5 +64,9 @@ static bool are_interrupts_enabled() {
 	return flags & (1 << 9);
 }
 
+static inline void send_EOI() {
+	outb(0x20, 0x20);
+	outb(0xa0, 0x20);
+}
 
 #endif
