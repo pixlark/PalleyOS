@@ -70,6 +70,40 @@ static void render_unsigned_integer(char* result, size_t* result_i, uint32_t to_
     }    
 }
 
+static void render_hexadecimal(char* result, size_t* result_i, uint32_t to_render) {
+    size_t digits = 1;
+    { // Count # of digits
+        size_t iter = to_render;
+        while (1) {
+            if (iter < 16) {
+                break;
+            }
+            iter /= 16;
+            digits++;
+        }
+    }
+    char hex_digits[] = {
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+    };
+    { // Render digits
+        size_t place = 1;
+        for (size_t i = 0; i < digits - 1; i++) {
+            place *= 16;
+        }
+        for (size_t i = 0; i < digits; i++) {
+            size_t digit = to_render;
+            digit %= (16 * place);
+            digit /= place;
+
+            result[*result_i] = hex_digits[digit];
+            *result_i += 1;
+
+            place /= 16;
+        }
+    }    
+}
+
 static void render_string(char* result, size_t* result_i, char* to_render) {
     while (*to_render != '\0') {
         result[*result_i] = *to_render;
@@ -93,6 +127,10 @@ void kvsprintf(char* result, const char* format, va_list args) {
             case 'u': {
                 uint32_t arg = va_arg(args, uint32_t);
                 render_unsigned_integer(result, &result_i, arg);
+            } break;
+            case 'x': {
+                uint32_t arg = va_arg(args, uint32_t);
+                render_hexadecimal(result, &result_i, arg);
             } break;
             case 's': {
                 char* arg = va_arg(args, char*);
@@ -126,7 +164,7 @@ void ksprintf(char* result, const char* format, ...) {
 }
 
 void kvprintf(const char* format, va_list args) {
-    char result[1024];
+    char result[512];
     kvsprintf(result, format, args);
     term_write(result);
 }

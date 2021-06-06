@@ -67,17 +67,20 @@ void kernel_main(void) {
 	/* Set up GDT */	
 	term_write("Setting up GDT\n");
 	setup_gdt();
-
+    
 	/* Set up IDT */
 	term_write("Setting up the IDT\n");
 	handle_idt_setup();
 
+    // 3735928559
+    kprintf("%x\n", 0xDEADBEEF);
+    
 	/* Init Timer and PIT */
 	init_timer();
 	
 	load_cpuid();
 	print_cpuid_vendor();
-
+    
 	setup_keyboard();
 }
 
