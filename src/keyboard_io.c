@@ -38,6 +38,7 @@ uint8_t ps2_send_sub_command(uint8_t command, int8_t subcommand) {
 		if(ret != RESEND) break;
 		count ++;
 	}
+
 	if(count >= 10) {
 		return 1;
 	}
@@ -82,7 +83,6 @@ void setup_keyboard() {
 
 	enable_interrupts();
 	handle_scancode_queue();
-
 }
 
 void handle_scancode_queue() {

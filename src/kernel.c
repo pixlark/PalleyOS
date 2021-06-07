@@ -74,10 +74,10 @@ void kernel_main(void) {
 	/* Init Timer and PIT */
 //	init_timer();
 
-	for(int i = 0; i < 256; i++){
+	for(int i =0; i < 255; i++){
 		kprintf("%d\n", i);
 	}
-	
+
 	load_cpuid();
 	print_cpuid_vendor();
     
