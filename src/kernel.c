@@ -46,7 +46,7 @@ void kernel_main(void) {
 	// frame #01 -> 00400000...004fffff
 	// And so on
 
-	// Map all memory
+	//Try mapping the first 16 MiB
 	term_write("Using Identity Mapping...\n");
 	int from = 0;
 	uint32_t four_mib = 1024*1024*4;
@@ -80,7 +80,11 @@ void kernel_main(void) {
 
 	load_cpuid();
 	print_cpuid_vendor();
+
+    for (uint32_t i = 0; i < 256; i++) {
+        kprintf("Page %u: %x\n", i, *((uint32_t*) (i * 1024 * 1024 * 4)));
+    }
     
-	setup_keyboard();
+	//setup_keyboard();
 }
 
