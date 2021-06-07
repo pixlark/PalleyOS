@@ -34,6 +34,7 @@ bool fetch_cpuid() {
 		buff[2] >>= 8;
 		i++;
 	}
+	cpuid.vendor_id[12] = 0;
 	
 
 	return true;

@@ -29,14 +29,19 @@ load_cpu_vendor_name:
 	push %ebp
 	mov %esp, %ebp
 
+	push %edi
+	push %ebx
 
 	mov $0, %eax
 	cpuid
 
-	mov 8(%esp), %edi
+	mov 8(%ebp), %edi
 	mov %ebx, (%edi)
 	mov %edx, 4(%edi)
 	mov %ecx, 8(%edi)
+
+	pop %edi
+	pop %ebx
 		
 	mov %ebp, %esp
 	pop %ebp
@@ -50,14 +55,18 @@ load_cpu_vendor_name:
 load_cpuid_features:
 	push %ebp
 	mov %esp, %ebp
-	
+
+	push %ebx
+
 	mov $1, %eax
 	cpuid
 
-	mov 8(%esp), %ebx
+	mov 8(%ebp), %ebx
 	mov %ecx, (%ebx)
-	mov 12(%esp), %ebx
+	mov 12(%ebp), %ebx
 	mov %edx, (%ebx)
+
+	pop %ebx
 
 	mov %ebp, %esp
 	pop %ebp
