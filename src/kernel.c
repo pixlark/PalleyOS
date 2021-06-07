@@ -46,7 +46,7 @@ void kernel_main(void) {
 	// frame #01 -> 00400000...004fffff
 	// And so on
 
-	//Try mapping the first 16 MiB
+	// Map all memory
 	term_write("Using Identity Mapping...\n");
 	int from = 0;
 	uint32_t four_mib = 1024*1024*4;
@@ -73,6 +73,10 @@ void kernel_main(void) {
     
 	/* Init Timer and PIT */
 //	init_timer();
+
+	for(int i = 0; i < 256; i++){
+		kprintf("%d\n", i);
+	}
 	
 	load_cpuid();
 	print_cpuid_vendor();

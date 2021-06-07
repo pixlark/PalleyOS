@@ -6,6 +6,10 @@
 .type keyboard_isr,@function
 keyboard_isr:
 	call keyboard_interrupt_handler
+	mov $0x20, %al
+	out %al, $0x20
+	mov $0xa0, %al
+	out %al, $0x20
 	iret
 
 # ====== EXCEPTIONS =====

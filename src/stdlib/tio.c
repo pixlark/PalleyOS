@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <io.h>
 
 #include "tio.h"
 
@@ -19,10 +20,6 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color);
 
 static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
-}
-
-int testing_function(int j) {
-	return j+20;
 }
 
 void inc_cursor() {
@@ -45,7 +42,7 @@ void term_write_char_color(char c, vga_color vc){
 	if(c == '\n') {
 		term_row ++;
 		term_col = 0;
-		if(term_row > TERM_HEIGHT)
+		if(term_row >= TERM_HEIGHT-1)
 			shift_term_line_up(1);
 		return;
 	}else if(c == '\r'){
@@ -158,13 +155,15 @@ void term_write_uint32(uint32_t n, unsigned int base) {
 
 // TODO: Make this save the old lines in memory so we can access late (scroll down)
 void shift_term_line_up(unsigned int n) {
-	for(uint16_t i = 0; i < TERM_HEIGHT - n; i++) {
-		for(uint16_t j = 0; j < TERM_WIDTH; j++) {
+	disable_interrupts();
+	for(uint32_t i = 0; i < TERM_HEIGHT - 1; i++) {
+		for(uint32_t j = 0; j < TERM_WIDTH; j++) {
 			video_buff[i*TERM_WIDTH + j] = video_buff[(i+n)*TERM_WIDTH + j];
 		}
 	}
 	term_row -= n;
 
+	enable_interrupts();
 	/*
 	for(uint16_t i = TERM_HEIGHT - n; i < TERM_HEIGHT; i++) {
 		for(uint16_t j = 0; j < TERM_WIDTH; j++) {

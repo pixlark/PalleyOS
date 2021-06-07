@@ -292,6 +292,6 @@ void init_PIC(int offset1, int offset2) {
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
 
-	outb(PIC1_DATA, 0xFC );
-	outb(PIC2_DATA, 0xFF ^ 0x20);
+	outb(PIC1_DATA, 0xFC);
+	outb(PIC2_DATA, 0xFF);
 }
