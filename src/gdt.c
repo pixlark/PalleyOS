@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #include <gdt.h>
-#include <tio.h>
+#include <kstdio.h>
 
 struct GDTEntry {
    uint16_t limit_low;
@@ -58,9 +58,7 @@ void setup_gdt() {
 	 */
 	gdt_set_gate(2, 0, 0xffffffff, 0x92, 0xCF);
 
-	term_write("GDT loc: ");
-	term_write_uint32((uint32_t)&GDT, 16);
-	term_write("\n");
+	kprintf("GDT loc: 0x%x\n", &GDT);
 
 	gp.limit = (sizeof(struct GDTEntry) * 3) - 1;
 	gp.base = (uint32_t)&GDT;

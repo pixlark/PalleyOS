@@ -45,20 +45,12 @@ void set_PIT_count(uint16_t count) {
 
 void init_timer() {
 //	init_PIT(18);
-	term_write("IRQ0_ms: ");
-	term_write_int(IRQ0_ms, 10);
-	term_write("\n");
-	term_write("IRQ0_fraction_ms: ");
-	term_write_uint32(IRQ0_fraction_ms, 16);
-	term_write("\n");
-	term_write("Reload Val: ");
-	term_write_int(PIT_reload_value, 10);
-	term_write("\n");
+	kprintf("IRQ0_ms: 0x%d\n", IRQ0_ms);
+	kprintf("IRQ0_fraction_ms: %d\n", IRQ0_fraction_ms);
+	kprintf("Reload Val: %d\n", PIT_reload_value);
 
 	uint16_t pit_count = read_PIT_count();
-	term_write("PIT count: ");
-	term_write_int(pit_count, 10);
-	term_write("\n");
+	kprintf("PIT count: %d\n", pit_count);
 }
 
 // TODO: Update this to use a semaphore/exchange thingy

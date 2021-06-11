@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra -Iinclude
+FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra -Iinclude -std=c99
 
 SRC_DIR=src
 BUILD_DIR=build
@@ -15,6 +15,8 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/idt.o \
 	$(OBJ_DIR)/isr.o \
 	$(OBJ_DIR)/gdt.o \
+	$(OBJ_DIR)/pci.o \
+	$(OBJ_DIR)/k_term_proc.o \
 	$(OBJ_DIR)/cpuid.o \
 	$(OBJ_DIR)/cpuid_fetch.o \
 	$(OBJ_DIR)/keyboard_io.o \
@@ -75,10 +77,10 @@ make-$(TIMER_DIR):
 	@mkdir -p obj/$(TIMER_DIR)
 
 run: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso
 
 run-server: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 -m 256 -cdrom $(BUILD_DIR)/palleyos.iso -s
+	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso -s
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)

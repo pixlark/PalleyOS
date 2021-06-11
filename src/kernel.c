@@ -3,12 +3,12 @@
 #include <stdint.h>
 
 #include <idt.h>
-#include <tio.h>
 #include <timer.h>
 #include <gdt.h>
 #include <cpuid.h>
-#include <keyboard_io.h>
 #include <kstdio.h>
+#include <pci.h>
+#include <terminal_proc.h>
 
 #include "paging.h"
 
@@ -47,7 +47,7 @@ void kernel_main(void) {
 	// And so on
 
 	// Map all memory
-	term_write("Using Identity Mapping...\n");
+	kprintf("Using Identity Mapping...\n");
 	int from = 0;
 	uint32_t four_mib = 1024*1024*4;
 	uint32_t* first_pde = page_directory;
@@ -56,31 +56,29 @@ void kernel_main(void) {
 		*first_pde |= PS_BIT;
 	}
 
-	term_write("Attempting to enter paging mode\n");
+	kprintf("Attempting to enter paging mode\n");
 	enable_paging(page_directory);
-	term_write("In paging mode!\n");
+	kprintf("In paging mode!\n");
 
 	/* Set up GDT */	
-	term_write("Setting up GDT\n");
+	kprintf("Setting up GDT\n");
 	setup_gdt();
     
 	/* Set up IDT */
-	term_write("Setting up the IDT\n");
+	kprintf("Setting up the IDT\n");
 	handle_idt_setup();
 
     // 3735928559
-    kprintf("%x\n", 0xDEADBEEF);
     
 	/* Init Timer and PIT */
 //	init_timer();
 
-	for(int i =0; i < 255; i++){
-		kprintf("%d\n", i);
-	}
-
 	load_cpuid();
 	print_cpuid_vendor();
-    
-	setup_keyboard();
+
+//	pci_check_all_buses();
+
+	terminal_proc_start();
+
 }
 

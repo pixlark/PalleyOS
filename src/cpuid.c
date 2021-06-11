@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <tio.h>
+#include <kstdio.h>
 #include <cpuid.h>
 
 struct cpuid_struct {
@@ -44,7 +44,7 @@ void load_cpuid() {
 	uint32_t available = is_CPUID_available();
 
 	if(available == 0) {
-		term_write("Unable to load CPUID (not available)");
+		kprintf("Unable to load CPUID (not available)");
 		return;
 	}
 	
@@ -52,20 +52,20 @@ void load_cpuid() {
 	load_cpuid_features((intptr_t)&cpuid.ecx_features, (intptr_t)&cpuid.edx_features);
 	
 	if(cpuid.edx_features & (1 << 9)) {
-		term_write("Has Built in APIC!\n");
+		kprintf("Has Built in APIC!\n");
 	}else {
-		term_write("No APIC found :(\n");
+		kprintf("No APIC found :(\n");
 	}
 }
 
 
 void print_cpuid_vendor() {
 	if(fetch_cpuid()) {
-	term_write("vendor id: ");
-	term_write(cpuid.vendor_id);
-	term_write("\n");
+	kprintf("vendor id: ");
+	kprintf(cpuid.vendor_id);
+	kprintf("\n");
 	} else {
-		term_write("CPUID not available :(\n");
+		kprintf("CPUID not available :(\n");
 	}
 }
 
