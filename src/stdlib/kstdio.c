@@ -68,6 +68,23 @@ static void render_hexadecimal(char* result, uint32_t* result_i, uint32_t to_ren
     }
 }
 
+static void render_binary(char* result, uint32_t* result_i, uint32_t to_render) {
+    uint32_t iter = to_render;
+    uint8_t buffer[32];
+    size_t i = 0;
+    while (true) {
+        buffer[i++] = iter % 2;
+        iter /= 2;
+        if (iter == 0) {
+            break;
+        }
+    }
+    for (int32_t j = i - 1; j >= 0; j--) {
+        result[*result_i] = '0' + buffer[j];
+        *result_i += 1;
+    }    
+}
+
 static void render_string(char* result, uint32_t* result_i, char* to_render) {
     while (*to_render != '\0') {
         result[*result_i] = *to_render;
@@ -95,6 +112,10 @@ void kvsprintf(char* result, const char* format, va_list args) {
             case 'x': {
                 uint32_t arg = va_arg(args, uint32_t);
                 render_hexadecimal(result, &result_i, arg);
+            } break;
+            case 'b': {
+                uint32_t arg = va_arg(args, uint32_t);
+                render_binary(result, &result_i, arg);
             } break;
             case 's': {
                 char* arg = va_arg(args, char*);

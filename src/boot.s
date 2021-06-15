@@ -21,7 +21,10 @@ stack_top:
 .type _start, @function
 _start:
 	mov $stack_top, %esp
-   
+
+    push %eax
+    push %ebx
+    
 	call kernel_main
 
 	jmp .
@@ -57,6 +60,8 @@ enable_paging:
 flush_tlb:
     movl %cr3, %eax
     movl %eax, %cr3
+    #movl 4(%esp), %eax
+    #invlpg (%eax)
     ret
 
 # Function that takes in a pointer to the 
@@ -84,3 +89,8 @@ gdt_flush:
 .reload_CS:
 	ret
 
+.global get_fault_address
+.type get_fault_address, @function
+get_fault_address:
+    mov %cr2, %eax
+    ret

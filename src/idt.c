@@ -157,15 +157,16 @@ void stack_seg_handler(uint32_t err) {
 // General Protection Fault (13)
 extern void general_prot_fault_isr();
 void general_prot_fault_handler(uint32_t err) {
-	kprintf("General Protection Fault, error code: %d\n", err);
+	kprintf("General Protection Fault, error code: 0b%b\n", err);
 	while(true);	
 }
 
 // Page Fault (14)
 extern void page_fault_isr();
+extern void handle_page_fault();
 void page_fault_handler(uint32_t err) {
-	kprintf("Page Fault, error code: %d\n", err);
-	while(true);	
+    // TODO(Paul): Check error code for error type
+    handle_page_fault();
 }
 
 // x87 Floating-Point Exception (Fault) (16)
