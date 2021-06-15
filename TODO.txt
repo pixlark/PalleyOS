@@ -1,3 +1,9 @@
+********** MUST DO BEFORE RUNNING ON HARDWARE **********
+[ ] Update GDT so we can't write to BIOS memory
+
+
+
+********** Kernel **********
 [X] Enable paging (A/P)
 	[ ] Test Page Faults (P)
 
@@ -29,10 +35,10 @@
 [ ] File I/O (A)
 	[ ] Saving and loading to Disk (A)
 
-[ ] Timer Interaction 
-	[ ] Sleep
+[X] Timer Interaction 
+	[X] Sleep
 	[ ] Callbacks?
-	[ ] Read current timer amt
+	[ ] Read current timer Amt
 
 [ ] Device Manager
 
