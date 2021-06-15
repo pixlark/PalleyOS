@@ -49,8 +49,11 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	load_cpuid();
 	print_cpuid_vendor();
 
-    //uint8_t* ptr1 = (uint8_t*) 0x10000000;
+    uint8_t* ptr1 = (uint8_t*) 0x10000000;
+	*ptr1 = 0xFF;
+	kprintf("0x%x\n", *ptr1);
     //uint8_t* ptr1 = (uint8_t*) (1024 * 1024 + 1);
+	/*
     for (uint32_t i = 1024 * 1024; i < 0xffffffff; i += 4) {
         uint32_t* ptr = (uint32_t*) i;
         *ptr = i;
@@ -60,6 +63,7 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
         }
     }
     kprintf("No write errors!\n");
+	*/
     
 	//setup_keyboard();
 }

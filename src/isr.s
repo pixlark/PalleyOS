@@ -5,10 +5,14 @@
 .global keyboard_isr
 .type keyboard_isr,@function
 keyboard_isr:
+	pushal
+	cld
 	call keyboard_interrupt_handler
-	mov $0x20, %al
+	popal
+	// Send EOI to PIC (Programmable Interrupt Controller)
+	mov $0x20, %al  // Handles IRQ's 0-7
 	out %al, $0x20
-	mov $0xa0, %al
+	mov $0xa0, %al	// Handles IRQ's 8-15
 	out %al, $0x20
 	iret
 
@@ -20,7 +24,10 @@ keyboard_isr:
 .global div_by_zero_isr
 .type div_by_zero_isr, @function
 div_by_zero_isr:
+	pushal
+	cld
 	call div_by_zero_handler
+	popal
 	iret
 
 # Debug (Fault/Trap) (1)
@@ -29,7 +36,10 @@ div_by_zero_isr:
 .global debug_isr
 .type debug_isr, @function
 debug_isr:
+	pushal
+	cld
 	call debug_handler
+	popal
 	iret
 	
 # Breakpoint (Trap) (3)
@@ -38,7 +48,10 @@ debug_isr:
 .global breakpoint_isr
 .type breakpoint_isr, @function
 breakpoint_isr:
+	pushal
+	cld
 	call breakpoint_handler
+	popal
 	iret
 
 # Overflow (Trap) (4)
@@ -47,7 +60,10 @@ breakpoint_isr:
 .global overflow_isr
 .type overflow_isr, @function
 overflow_isr:
+	pushal
+	cld
 	call overflow_handler
+	popal
 	iret
 
 # Bound Range Exceeded Fault (5)
@@ -56,7 +72,10 @@ overflow_isr:
 .global bound_range_isr
 .type bound_range_isr, @function
 bound_range_isr:
+	pushal
+	cld
 	call bound_range_exceeded_handler
+	popal
 	iret
 
 # Invalid Opcode Fault (6)
@@ -65,7 +84,10 @@ bound_range_isr:
 .global invalid_opcode_isr
 .type invalid_opcode_isr, @function
 invalid_opcode_isr:
+	pushal
+	cld
 	call invalid_opcode_handler
+	popal
 	iret
 
 # Device Not Available Fault (7) 
@@ -74,7 +96,10 @@ invalid_opcode_isr:
 .global device_na_isr
 .type device_na_isr, @function
 device_na_isr:
+	pushal
+	cld
 	call device_na_handler
+	popal
 	iret
 
 # Double Fault (Abort) (8)
@@ -83,8 +108,10 @@ device_na_isr:
 .global double_fault_isr
 .type double_fault_isr, @function
 double_fault_isr:
-	pop %eax
+	pushal
+	cld
 	call double_fault_handler
+	popal
 	iret
 
 # Invalid TSS Fault (10)
@@ -93,14 +120,11 @@ double_fault_isr:
 .global invalid_tss_isr
 .type invalid_tss_isr, @function
 invalid_tss_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	push (%esp)
+	pushal
+	cld
 	call invalid_tss_handler
+	popal
 
-	mov %ebp, %esp
-	pop %ebp
 	iret
 
 # Segment Not Present Fault (11)
@@ -109,14 +133,11 @@ invalid_tss_isr:
 .global seg_not_pres_isr
 .type seg_not_pres_isr, @function
 seg_not_pres_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	push (%esp)
+	pushal
+	cld
 	call seg_not_pres_handler
+	popal
 
-	mov %ebp, %esp
-	pop %ebp
 	iret
 
 # Stack Segment Fault (12)
@@ -125,14 +146,11 @@ seg_not_pres_isr:
 .global stack_seg_isr
 .type stack_seg_isr, @function
 stack_seg_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	push (%esp)
+	pushal
+	cld
 	call stack_seg_handler
+	popal
 
-	mov %ebp, %esp
-	pop %ebp
 	iret
 
 # General Protection Fault (13)
@@ -141,14 +159,11 @@ stack_seg_isr:
 .global general_prot_fault_isr
 .type general_prot_fault_isr, @function
 general_prot_fault_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	pop %eax
+	
+	pushal
+	cld
 	call general_prot_fault_handler
-
-	mov %ebp, %esp
-	pop %ebp
+	popal
 	iret
 
 # Page Fault (14)
@@ -157,14 +172,13 @@ general_prot_fault_isr:
 .global page_fault_isr
 .type page_fault_isr, @function
 page_fault_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	pop %eax
+	pushal
+	cld
+	# Pops err off the stack
 	call page_fault_handler
+	pop %eax
+	popal
 
-	mov %ebp, %esp
-	pop %ebp
 	iret
 
 # x87 Floating-Point Exception (Fault) (16)
@@ -173,7 +187,11 @@ page_fault_isr:
 .global fpe_isr
 .type fpe_isr, @function
 fpe_isr:
+	pushal
+	cld
 	call fpe_handler
+	popal
+
 	iret
 
 # Alignment Check Fault (17)
@@ -182,14 +200,11 @@ fpe_isr:
 .global align_check_isr
 .type align_check_isr, @function
 align_check_isr:
-	push %ebp
-	mov %esp, %ebp
-
-	pop %eax
+	pushal
+	cld
 	call align_check_handler
+	popal
 
-	mov %ebp, %esp
-	pop %ebp
 	iret
 
 # Machine Check (18)
@@ -198,7 +213,10 @@ align_check_isr:
 .global machine_check_isr
 .type machine_check_isr, @function
 machine_check_isr:
+	pushal
+	cld
 	call machine_check_handler
+	popal
 	iret
 
 # SIMD Floating Point Exception (Fault) (19)
@@ -207,7 +225,10 @@ machine_check_isr:
 .global simd_fpe_isr
 .type simd_fpe_isr, @function
 simd_fpe_isr:
+	pushal
+	cld
 	call simd_fpe_handler
+	popal
 	iret
 
 # Virtualization Exception (Fault) (20)
@@ -216,5 +237,8 @@ simd_fpe_isr:
 .global virt_isr
 .type virt_isr, @function
 virt_isr:
+	pushal
+	cld
 	call virt_handler
+	popal
 	iret

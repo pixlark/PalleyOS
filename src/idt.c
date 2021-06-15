@@ -108,7 +108,7 @@ void overflow_handler() {
 // Bound Range Exceeded Fault (5)
 extern void bound_range_isr();
 void bound_range_exceeded_handler(){
-	//term_write("Out of bounds fault\n");
+	kprintf("Out of bounds fault\n");
 	while(true);
 }
 
@@ -158,6 +158,8 @@ void stack_seg_handler(uint32_t err) {
 extern void general_prot_fault_isr();
 void general_prot_fault_handler(uint32_t err) {
 	kprintf("General Protection Fault, error code: 0b%b\n", err);
+	kprintf("Table: %s, Selector Index: %d\n", 
+			(const char*[]){"GDT", "IDT", "LDT", "IDT"}[(err&0x6)>>1], (err & ~(7))>>3);
 	while(true);	
 }
 
