@@ -1,19 +1,49 @@
 [X] Enable paging (A/P)
+	[ ] Test Page Faults (P)
+
 [ ] Agree upon a general memory map (A/P)
 	- What is non-user-accessible (i.e. kernel code an data)
 	- Where does stack begin, how big
 	- Heap?
+
 [X] Set up GDT (A/P)
 	- Rather Straight forward, just set all descriptors and segmentation registers
 	to use all of memory (probably). 0-4GiB. Alternatively, we can have ring 
 	level 0 be one half and ring level 3 be the other half. CS and DS for kernel
 	get one half and CS and DS for user get the other half.
-[ ] Set up IDT (A/P)
+
+[X] Set up IDT (A/P)
    [ ] Detect if using PIC or APIC. Disable APIC and use PIC? (Might be easier)
    	   APIC is used for sending interrupts between processors (probably too advanced for right now)
-[ ] Terminal output for the kernel (A)
-[ ] Standard library
-   [ ] printf (P)
+
+[X] Standard library
+   [X] printf (P)
    [ ] heap allocator (P)
-[ ] Keyboard input (A)
-[ ] Saving and loading to Disk ( )
+
+[X] Terminal output for the kernel (A)
+	- Update to use a double buffer so that we don't have to stop for interrupts
+	
+[X] Keyboard input (A)
+	- Add support for other scan sets?
+
+[ ] File I/O (A)
+	[ ] Saving and loading to Disk (A)
+
+[ ] Timer Interaction 
+	[ ] Sleep
+	[ ] Callbacks?
+	[ ] Read current timer amt
+
+[ ] Device Manager
+
+[ ] Load Program from hard disk into memory and run
+	- Later we will add support for processes which get their own stack and heap
+	
+[ ] Scheduler
+	- Context Switching (TSS? Not sure what it is)
+	- Most likely a simple round robin scheduler
+
+[ ] Inter Process Communication
+	- Send Messages between processes
+
+[ ] USB Drivers

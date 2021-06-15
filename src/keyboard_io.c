@@ -201,7 +201,7 @@ uint8_t send_ps2_command(uint8_t comm, bool returns){
 	
 	// Wait until status register says we can read
 	while(num_tries++ < 10)
-		if(out_buff_status = inb(0x64) & 1) break; 
+		if((out_buff_status = inb(0x64) & 1)) break; 
 
 	if(out_buff_status)
 		return inb(PS2);
@@ -247,7 +247,7 @@ void init_ps2() {
 	if(ps2_send_dev_command(0xff) == 0xFD)
 		kprintf("ERROR: Failed to reset ps2 device 1\n");
 	
-	outb(0x21, 0xfd);
+	outb(0x21, 0xfc);
 	outb(0xa1, 0xff);
 	
 }
@@ -365,8 +365,6 @@ MappedKey kb_next_mapped_key() {
 	ret.mapped_code = mapped_code;
 	ret.printable = true;
 	ret.down_stroke = being_pressed;
-
-	uint32_t i;
 
 	return ret;
 }

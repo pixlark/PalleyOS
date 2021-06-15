@@ -11,8 +11,8 @@
 
 uint16_t* vb = (uint16_t*) 0xB8000;
 
-size_t term_row = 0;
-size_t term_col = 0;
+int term_row = 0;
+int term_col = 0;
 
 // For saving up to 20 pages of terminal
 static uint16_t pvb[PVB_SIZE] = {' ' | VGA_COLOR_BLACK << 8};
@@ -30,7 +30,14 @@ static void update_cursor(int x, int y);
  * If that is the case, this will shift the screen so 
  * the user can see where they are typing
  */
-static void fix_screen_pos() {}
+static void fix_screen_pos() {
+	int num_shifts = term_row - TERM_HEIGHT;
+	
+	if(num_shifts > 0) tio_shift_term_line(num_shifts);
+	else if(num_shifts	< -TERM_HEIGHT) {
+		tio_shift_term_line(term_row-TERM_HEIGHT/2);
+	}
+}
 
 static void inc_cursor() {
 	term_col++;
@@ -43,6 +50,7 @@ static void inc_cursor() {
 }
 
 void tio_dec_cursor() {
+	fix_screen_pos();
 	term_col--;
 	if(term_col < 0){
 		term_row--;
@@ -62,6 +70,7 @@ inline void term_write_char(char c) {
 }
 
 void term_write_char_color(char c, vga_color vc){
+	fix_screen_pos();
 
 	if(c == '\n') {
 		term_row ++;
@@ -105,8 +114,8 @@ void tio_enable_cursor()
 
 static void update_cursor(int x, int y)
 {
-	uint16_t pos = y * TERM_WIDTH + x;
-	if(pos >= VB_SIZE || pos < 0) return;
+	int16_t pos = y * TERM_WIDTH + x;
+	if(pos >= VB_SIZE) return;
  
 	outb(0x3D4, 0x0F);
 	outb(0x3D5, (uint8_t) (pos & 0xFF));

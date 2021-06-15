@@ -16,14 +16,20 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/isr.o \
 	$(OBJ_DIR)/gdt.o \
 	$(OBJ_DIR)/pci.o \
+	$(OBJ_DIR)/pic.o \
+	$(OBJ_DIR)/fadt.o \
+	$(OBJ_DIR)/ata.o \
+	$(OBJ_DIR)/ata_helper.o \
 	$(OBJ_DIR)/k_term_proc.o \
 	$(OBJ_DIR)/cpuid.o \
 	$(OBJ_DIR)/cpuid_fetch.o \
 	$(OBJ_DIR)/keyboard_io.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/timer.o \
+	$(OBJ_DIR)/$(TIMER_DIR)/sleep.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o 
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdlib.o 
 
 all: $(BUILD_DIR)/palleyos.iso
 
@@ -77,7 +83,11 @@ make-$(TIMER_DIR):
 	@mkdir -p obj/$(TIMER_DIR)
 
 run: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 \
+		-boot d \
+		-m 256M \
+		-cdrom $(BUILD_DIR)/palleyos.iso \
+		-drive format=raw,file=./palleyos.img
 
 run-server: $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso -s

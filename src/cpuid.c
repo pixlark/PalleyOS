@@ -29,6 +29,7 @@ bool fetch_cpuid() {
 			i++;
 		}
 	}
+
 	while(buff[2] > 0) {
 		cpuid.vendor_id[i] = (char) (buff[2] & 0xff);
 		buff[2] >>= 8;
@@ -36,7 +37,6 @@ bool fetch_cpuid() {
 	}
 	cpuid.vendor_id[12] = 0;
 	
-
 	return true;
 }
 

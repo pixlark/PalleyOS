@@ -46,8 +46,11 @@ enable_paging:
 	or $0x80000001, %eax
 	mov %eax, %cr0
 
+	mov %cr3, %eax
+
 	mov %ebp, %esp
 	pop %ebp
+
 	ret
 
 .size _start, . - _start
