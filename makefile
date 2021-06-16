@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O2 -nostdlib -Wall -Wextra -Iinclude
+FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g 
 QEMU_FLAGS=-m 64M -cdrom $(BUILD_DIR)/palleyos.iso
 
 SRC_DIR=src
@@ -34,7 +34,7 @@ $(BUILD_DIR)/palleyos.iso: $(BUILD_DIR)/palleyos.bin
 	cp $(BUILD_DIR)/palleyos.bin $(ISO_DIR)/boot/
 	grub-mkrescue -o $@ $(ISO_DIR) 2> /dev/null
 
-$(BUILD_DIR)/palleyos.bin: $(OBJS)
+$(BUILD_DIR)/palleyos.bin: $(OBJS) $(SRC_DIR)/linker.ld
 	@make --silent make-$(BUILD_DIR)
 	$(CC) -T $(SRC_DIR)/linker.ld -o $@ $(FLAGS) $(OBJS) -lgcc
 	@./check_multiboot.sh
@@ -80,7 +80,7 @@ run: $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 $(QEMU_FLAGS)
 
 run-server: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 $(QEMU_FLAGS) -s
+	qemu-system-i386 $(QEMU_FLAGS) -s -S
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)

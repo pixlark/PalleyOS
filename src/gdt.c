@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #include <gdt.h>
-#include <tio.h>
+#include <kstdio.h>
 
 struct GDTEntry {
    uint16_t limit_low;
@@ -38,6 +38,7 @@ void gdt_set_gate(int num, uint32_t base, uint32_t limit,
 	GDT[num].access = access;
 }
 
+
 void setup_gdt() {
 	// Sets flat segments that span all of memory
 	// TODO: Change so half of memory is for kernel, other half for user
@@ -51,16 +52,14 @@ void setup_gdt() {
 	 * Uses 32-bit opcodes
 	 * Code Segment Descriptor
 	 */
-	gdt_set_gate(1, 0, 0xffffffff, 0x9A, 0xCF); 
+	gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); 
 
 	/* Data Segment Descriptor
 	 * Same as above but descriptor type is DS
 	 */
 	gdt_set_gate(2, 0, 0xffffffff, 0x92, 0xCF);
 
-	term_write("GDT loc: ");
-	term_write_uint32((uint32_t)&GDT, 16);
-	term_write("\n");
+	kprintf("GDT loc: 0x%x\n", &GDT);
 
 	gp.limit = (sizeof(struct GDTEntry) * 3) - 1;
 	gp.base = (uint32_t)&GDT;

@@ -166,6 +166,9 @@ void general_prot_fault_handler(uint32_t err) {
 // Page Fault (14)
 extern void page_fault_isr();
 extern void handle_page_fault();
+// Stack
+// err
+// iret = the place where we messed up
 void page_fault_handler(uint32_t err) {
     // TODO(Paul): Check error code for error type
     handle_page_fault();

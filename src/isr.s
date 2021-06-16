@@ -79,7 +79,6 @@ bound_range_isr:
 	iret
 
 # Invalid Opcode Fault (6)
-
 .extern invalid_opcode_handler
 .global invalid_opcode_isr
 .type invalid_opcode_isr, @function
@@ -91,7 +90,6 @@ invalid_opcode_isr:
 	iret
 
 # Device Not Available Fault (7) 
-
 .extern device_na_handler
 .global device_na_isr
 .type device_na_isr, @function
@@ -167,17 +165,16 @@ general_prot_fault_isr:
 	iret
 
 # Page Fault (14)
-
+.extern term_write_int
 .extern page_fault_handler
 .global page_fault_isr
 .type page_fault_isr, @function
 page_fault_isr:
 	pushal
 	cld
-	# Pops err off the stack
 	call page_fault_handler
-	pop %eax
 	popal
+	add $4, %esp # Get rid of error
 
 	iret
 

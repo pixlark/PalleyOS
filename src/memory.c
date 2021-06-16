@@ -73,7 +73,7 @@ void handle_page_fault() {
         // enough space for the whole frame. Thus we calculate an
         // offset from the start of the region, and the maximum number
         // of blocks that it can fit.
-        
+
         uint32_t frame_start = region->address & ~(FRAME_SIZE - 1);
         frame_start += FRAME_SIZE;
 
@@ -105,11 +105,14 @@ void handle_page_fault() {
 
     // Now, update the page directory to reference this frame
     uint32_t vpn = get_virtual_page_number(fault_address);
-    page_directory[vpn] |= (pfn << 22); // Set PFN
-    page_directory[vpn] |= 1;           // Mark page as present
+	page_directory[vpn] |= (1 << 7); 	// Set Page Size (4MiB)
+    //page_directory[vpn] |= (pfn << 22); // Set PFN
+    page_directory[vpn] |= (1 << 22); // Set PFN
+    page_directory[vpn] |= (3 << 5); // Set PFN
+    page_directory[vpn] |= 3;           // Mark page as present
 
     // Invalidate the TLB, so that the processor will reflect these changes
-    flush_tlb();
+    flush_tlb(); 
 
     kprintf("Mapped page %d to frame %d (word %d, position %d)\n", vpn, pfn, pfn / 32, pfn % 32);
 }
@@ -173,7 +176,7 @@ void setup_paging() {
         page_directory[i] = entry;
     }
 
-    // Map low memory (under 1MB) (this is what we're operating under)
+    // Map low memory (first 4MB) (this is what we're operating under)
     page_directory[0] |= 0b11;
 
     // Zero out our physical page frame map (no pages allocated)

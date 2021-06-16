@@ -4,6 +4,7 @@
 
 #include <idt.h>
 #include <tio.h>
+#include <io.h>
 #include <timer.h>
 #include <gdt.h>
 #include <cpuid.h>
@@ -25,20 +26,21 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
         return;
     }
 
+	/* Set up IDT */
+	kprintf("Setting up the IDT\n");
+	handle_idt_setup();
+
 	/* Set up GDT */	
-	term_write("Setting up GDT\n");
+	kprintf("Setting up GDT\n");
 	setup_gdt();
     
-	/* Set up IDT */
-	term_write("Setting up the IDT\n");
-	handle_idt_setup();
     
     // Inform the memory unit of our physical memory situation
     load_physical_memory_region_descriptors(multiboot_info);
 
     // Now, setup paging so we can use our physical memory
     setup_paging();
-    
+
 	/* Init Timer and PIT */
 //	init_timer();
 
@@ -49,10 +51,7 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	load_cpuid();
 	print_cpuid_vendor();
 
-    uint8_t* ptr1 = (uint8_t*) 0x10000000;
-	*ptr1 = 0xFF;
-	kprintf("0x%x\n", *ptr1);
-    //uint8_t* ptr1 = (uint8_t*) (1024 * 1024 + 1);
+		
 	/*
     for (uint32_t i = 1024 * 1024; i < 0xffffffff; i += 4) {
         uint32_t* ptr = (uint32_t*) i;
