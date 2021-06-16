@@ -65,7 +65,7 @@ $(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c
 	@make --silent make-$(STD_LIB_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
-.PHONY: run clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR)
+.PHONY: run run-bin run-server clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR)
 
 make-$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -87,6 +87,13 @@ run: $(BUILD_DIR)/palleyos.iso
 		-boot d \
 		-m 256M \
 		-cdrom $(BUILD_DIR)/palleyos.iso \
+		-drive format=raw,file=./palleyos.img
+
+run-bin: $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 \
+		-boot d \
+		-m 256M \
+		-kernel $(BUILD_DIR)/palleyos.bin \
 		-drive format=raw,file=./palleyos.img
 
 run-server: $(BUILD_DIR)/palleyos.iso
