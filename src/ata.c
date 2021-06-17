@@ -226,8 +226,179 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 		}
 }
 
+// Used by ide_read/write_sectors
+uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
+						uint8_t num_sects, uint16_t selector, uint32_t offset) {
+	uint8_t lba_mode, 	/* 0: CHS, 1:LBA48 */
+			dma, 	   	/* 0: No DMA, 1: DMA */ 
+			cmd;
+	uint8_t lba_io[6];
+	uint32_t channel = ide_devices[drive].channel;
+	uint32_t slave_bit = ide_devices[drive].drive;
+	uint32_t bus = channels[channel].base; // Bus Base, e.g. 0x1F0, also data port.
+	uint32_t words = 256;	// Nearly every ATA drive has a sector-size of 512-bytes
+	uint16_t cyl;	// Cylinder
+	uint8_t head, sect, err; // Head, Sector, Error
+
+	// Currently, we are not using IRQs, so we must disable them
+	// If bit 1 in the control register (nIEN bit) is set, no IRQs will be invoked by any drives
+	// on this channel, either master or slave.
+	ide_write(channel, ATA_REG_CONTROL, 
+				channels[channel].no_interrupt = (ide_irq_invoked = 0x0) + 0x02);
+
+	// 1. Read the Parameters, select from LBA28, LBA48, or CHS
+	if (lba >= 0x10000000) { // LBA 48 is the only one accessible here
+		lba_mode = 2;
+		lba_io[0] = (lba & 0x000000FF) >> 0;
+		lba_io[1] = (lba & 0x0000FF00) >> 8;
+		lba_io[2] = (lba & 0x00FF0000) >> 16;
+		lba_io[3] = (lba & 0xFF000000) >> 24;
+		lba_io[4] = 0; // We are only a 32-bit system 
+		lba_io[5] = 0; // We are only a 32-bit system 
+		head 	  = 0; // Lower 4-bits of HDDEVSEL are not used here
+	} else if (ide_devices[drive].capabilities & 0x200) { // Drive supports LBA?
+		// LBA28:
+		lba_mode = 1;
+		lba_io[0] = (lba & 0x000000FF) >> 0;
+		lba_io[1] = (lba & 0x0000FF00) >> 8;
+		lba_io[2] = (lba & 0x00FF0000) >> 16;
+		lba_io[3] = 0; // These registers are not used here
+		lba_io[4] = 0; // These registers are not used here
+		lba_io[5] = 0; // These registers are not used here
+		head 	  = (lba & 0xF0000000) >> 24; 
+	} else { // CHS
+		lba_mode  = 0;
+		sect 	  = (lba % 63) + 1;
+		cyl		  = (lba + 1 - sect) / (16 * 63);
+		lba_io[0] = sect;
+		lba_io[1] = (cyl >> 0) & 0xFF;
+		lba_io[2] = (cyl >> 8) & 0xFF;
+		lba_io[3] = 0; 
+		lba_io[4] = 0; 
+		lba_io[5] = 0; 
+		// Head number is writted to HDDEVSEL lower 4-bits
+		head 	  = (lba + 1 - sect) % (16 * 63) / (63); 
+	}
+
+	// 2. See if drive supports DMA
+	dma = 0; // We don't support DMA yet
+
+	// 3. Wait if the drive is busy
+	while (ide_read(channel, ATA_REG_STATUS) & ATA_SR_BSY);
+
+	/* HDDEVSEL register now looks like this:
+	 * bits 0:3 Head number of CHS
+	 * bit 4: slave bit (0: master, 1: slave)
+	 * bit 5: Obsolete, should be 1
+	 * bit 6: LBA (0: CHS, 1: LBA)
+	 * bit 7: Obsolete, should be 1
+	 */
+
+	// 4. Select Drive from the controller
+	if (lba_mode == 0) // Drive & CHS
+		ide_write(channel, ATA_REG_HDDEVSEL, 0xA0 | (slave_bit << 4) | head);
+	else // Drive & LBA
+		ide_write(channel, ATA_REG_HDDEVSEL, 0xE0 | (slave_bit << 4) | head);
+
+	// 5. Write Parameters
+	if (lba_mode == 2) {
+		ide_write(channel, ATA_REG_SECCOUNT1, 0);
+		ide_write(channel, ATA_REG_LBA3, lba_io[3]);
+		ide_write(channel, ATA_REG_LBA4, lba_io[4]);
+		ide_write(channel, ATA_REG_LBA5, lba_io[5]);
+	}
+	ide_write(channel, ATA_REG_SECCOUNT0, num_sects);
+	ide_write(channel, ATA_REG_LBA0, lba_io[0]);
+	ide_write(channel, ATA_REG_LBA1, lba_io[1]);
+	ide_write(channel, ATA_REG_LBA2, lba_io[2]);
 
 
+	// 6. Select the command and send it
+	if (lba_mode == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;
+	if (lba_mode == 1 && dir == 0) cmd = ATA_CMD_READ_PIO;
+	if (lba_mode == 2 && dir == 0) cmd = ATA_CMD_READ_PIO_EXT;
+	if (lba_mode == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+	if (lba_mode == 1 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+	if (lba_mode == 2 && dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
 
-void ata_init() {
+	// After sending the command, we should poll, then read/write a sector and repeat
+	// until all sectors needed, or if an error has occured, the function will
+	// return a specific error code
+	if (dir == 0) {
+		for (int i = 0; i < num_sects; i++) {
+			if(err = ide_polling(channel, 1))
+				return err; // Polling, set error and exit if there is;
+			asm("pushw %es");
+			asm("mov %%ax, %%es"::"a"(selector));
+			asm("rep insw"::"c"(words), "d"(bus), "D"(offset)); // Receive Data
+			asm("popw %es");
+			offset += (words*2);
+		}
+	} else {
+		for (int i = 0; i < num_sects; i++) {
+			ide_polling(channel, 0); // Polling
+			asm("pushw %ds");
+			asm("mov %%ax, %%ds"::"a"(selector));
+			asm("rep outsw"::"c"(words), "d"(bus), "S"(offset)); // Send Data
+			asm("popw %ds");
+			offset += (words*2);
+		}
+
+		// Flush the cache
+		ide_write(channel, ATA_REG_COMMAND, (char[]) {
+				ATA_CMD_CACHE_FLUSH,
+				ATA_CMD_CACHE_FLUSH,
+				ATA_CMD_CACHE_FLUSH_EXT
+				}[lba_mode]);
+		ide_polling(channel, 0); // Polling
+	}
+
+	return 0; // wow thats a mammoth
 }
+
+uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
+					uint16_t selector, uint32_t offset) {
+
+	// 1. Check if the drive presents:
+	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
+	
+	// 2. Check if inputs are valid
+	else if( ((lba + num_sects) > ide_devices[drive].size) 
+			&& (ide_devices[drive].type = IDE_ATA))
+		return 2;	// Seeking to invalid position
+	// 3. Read in PIO Mode through Polling
+	else {
+		uint8_t err = 0;
+		if(ide_devices[drive].type == IDE_ATA)
+			err = ide_ata_access(ATA_READ, drive, lba, num_sects, selector, offset);
+		else if(ide_devices[drive].type == IDE_ATAPI)
+			for(int i = 0; i < num_sects; i++) // Not implemented, should read from atapi
+		return ide_print_error(drive, err);	
+	}
+	return 0;
+}
+
+uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
+						uint16_t selector, uint32_t offset) {
+	// 1. Check if the drive presents:
+	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
+	
+	// 2. Check if inputs are valid
+	else if( ((lba + num_sects) > ide_devices[drive].size) 
+			&& (ide_devices[drive].type = IDE_ATA))
+		return 2;	// Seeking to invalid position
+	// 3. Read in PIO Mode through Polling
+	else {
+		uint8_t err = 0;
+		if(ide_devices[drive].type == IDE_ATA)
+			err = ide_ata_access(ATA_WRITE, drive, lba, num_sects, selector, offset);
+		else if(ide_devices[drive].type == IDE_ATAPI)
+			err = 4; // Write is protected
+		return ide_print_error(drive, err);	
+	}
+
+}
+
+void ata_test {
+}
+

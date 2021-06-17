@@ -139,5 +139,5 @@ struct ide_device {
 	unsigned char model[41]; 	// Model string
 };
 
-void ata_init();
+void ata_test();
 void ide_initialize(uint32_t BAR0,uint32_t BAR1,uint32_t BAR2,uint32_t BAR3,uint32_t BAR4);
