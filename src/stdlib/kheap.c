@@ -20,6 +20,7 @@ typedef struct HeapNode {
 static HeapNode* root_node;
 
 void initialize_kheap() {
+    kprintf("sizeof(HeapNode): %d\n", sizeof(HeapNode));
     root_node = (HeapNode*) KHEAP_START;
     root_node->magic_number = KHEAP_MAGIC;
     root_node->size = (KHEAP_END - KHEAP_START) - sizeof(HeapNode);
@@ -61,6 +62,30 @@ void* kheap_alloc(uint32_t size) {
     // Didn't find any space!
     kprintf("Kernel heap ran out of space!\n");
     while (true);
+}
+
+void compact_heap() {
+    HeapNode* iter = root_node;
+    while (iter != NULL) {
+        if (iter->next_node == NULL) {
+            break;
+        }
+        if (!iter->allocated && !iter->next_node->allocated) {
+            // Combine free space
+            ptrdiff_t diff = ((uint8_t*) iter->next_node) - ((uint8_t*) iter);
+            iter->size = (diff - sizeof(HeapNode))
+                       + (sizeof(HeapNode) + iter->next_node->size);
+            iter->next_node = iter->next_node->next_node;
+            continue;
+        }
+        iter = iter->next_node;
+    }
+}
+
+void kheap_free(void* ptr) {
+    HeapNode* node = CONTENTS_TO_NODE(ptr);
+    node->allocated = false;
+    compact_heap();
 }
 
 void kheap_dump() {
