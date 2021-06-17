@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <timer.h>
-#include <tio.h>
+#include <kstdio.h>
 #include <io.h>
 
 #define COUNTOWN_COMPLETE 1
@@ -12,7 +12,6 @@ extern uint16_t PIT_reload_value;
 extern uint32_t IRQ0_frequency;
 extern uint32_t IRQ0_fraction_ms;
 extern uint32_t IRQ0_ms;
-
 
 extern void init_PIT(uint32_t desired_freq);
 
@@ -43,37 +42,23 @@ void set_PIT_count(uint16_t count) {
 	return;
 }
 
-void init_timer() {
-//	init_PIT(18);
+void init_PIT_timer() {
+	disable_interrupts();
+//	init_PIT(1000); // Externed in PIT.s
+	outb(0x43, 0x34);
+	outb(0x40, 0xa9);
+	outb(0x40, 0x04);
+	
+	outb(0x43, 0xe2);
+	io_wait();
+	kprintf("PIT Status: 0x%x\n", inb(0x43));
+	/*
 	kprintf("IRQ0_ms: 0x%d\n", IRQ0_ms);
-	kprintf("IRQ0_fraction_ms: %d\n", IRQ0_fraction_ms);
+	kprintf("IRQ0_fraction_ms: %x\n", IRQ0_fraction_ms);
 	kprintf("Reload Val: %d\n", PIT_reload_value);
 
 	uint16_t pit_count = read_PIT_count();
-	kprintf("PIT count: %d\n", pit_count);
-}
-
-// TODO: Update this to use a semaphore/exchange thingy
-struct sleep_timer {
-	void (*callback)();	
-	uint32_t count_down;
-} sleep_timers[20];
-uint8_t sleep_timer_index = 0;
-
-// Time is in intervals of 1ms
-void add_sleep_timer(uint32_t time, void (*cb)()) {
-	sleep_timers[sleep_timer_index].count_down = time;
-	sleep_timers[sleep_timer_index].callback = cb;
-}
-
-uint16_t counter;
-void TimerIRQ(void) { /* Called from PIT.s */
-	uint8_t i;
-	for (i = 0; i < 20; i++) {
-		if(sleep_timers[i].count_down > 0) {
-			sleep_timers[i].count_down--;
-			if(sleep_timers[i].count_down == 0)
-				sleep_timers[i].callback();			 // Probably a horrible idea
-		}
-	}
+	kprintf("PIT count: %x\n", pit_count);
+	*/
+	enable_interrupts();
 }

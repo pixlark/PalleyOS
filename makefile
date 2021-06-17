@@ -17,16 +17,22 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/isr.o \
 	$(OBJ_DIR)/gdt.o \
 	$(OBJ_DIR)/pci.o \
+	$(OBJ_DIR)/pic.o \
+	$(OBJ_DIR)/fadt.o \
+	$(OBJ_DIR)/ata.o \
+	$(OBJ_DIR)/ata_helper.o \
 	$(OBJ_DIR)/k_term_proc.o \
 	$(OBJ_DIR)/cpuid.o \
 	$(OBJ_DIR)/cpuid_fetch.o \
 	$(OBJ_DIR)/keyboard_io.o \
 	$(OBJ_DIR)/memory.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/timer.o \
+	$(OBJ_DIR)/$(TIMER_DIR)/sleep.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/kheap.o 
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdlib.o 
 
 all: $(BUILD_DIR)/palleyos.iso
 
@@ -62,7 +68,7 @@ $(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c
 	@make --silent make-$(STD_LIB_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
-.PHONY: run clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR)
+.PHONY: run run-bin run-server clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR)
 
 make-$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -80,10 +86,25 @@ make-$(TIMER_DIR):
 	@mkdir -p obj/$(TIMER_DIR)
 
 run: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 $(QEMU_FLAGS)
+	qemu-system-i386 \
+		-boot d \
+		-m 256M \
+		-cdrom $(BUILD_DIR)/palleyos.iso \
+		-drive format=raw,file=./palleyos.img
+
+run-bin: $(BUILD_DIR)/palleyos.iso
+	qemu-system-i386 \
+		-boot d \
+		-m 256M \
+		-kernel $(BUILD_DIR)/palleyos.bin \
+		-drive format=raw,file=./palleyos.img
 
 run-server: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 $(QEMU_FLAGS) -s -S
+	qemu-system-i386 \
+		-m 256M \
+		-cdrom $(BUILD_DIR)/palleyos.iso
+		-drive format=raw,file=./palleyos.img \
+		-s -S
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)

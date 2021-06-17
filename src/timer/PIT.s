@@ -46,8 +46,6 @@ IRQ0_handler:
 	pop %eax
 	iretl				# 32-bit interrupt return
 
-
-
 #Input
 # 32-bit long on stack, desired frequency
 .global init_PIT
@@ -55,6 +53,9 @@ IRQ0_handler:
 init_PIT:
 	push %ebp
 	mov %esp, %ebp
+
+	push %ebx
+	push %edx
 
 	mov 8(%ebp), %ebx	# ebx = requested frequency
 	
@@ -69,40 +70,53 @@ init_PIT:
 	jae .gotReloadValue# jump above equal, like jge but unsigned
 
 	# Calculate the reload value
-	movl $1193181, %eax
+	movl $3579545, %eax
 	movl $0, %edx
 	div %ebx			# eax = 1193181 / desired freq., edx = remainder
 						# i.e. eax = reload value
 	# round up or down to be improve accurate
-	cmp $596591, %edx   # Is the remainder more than half
+	cmp $1789772, %edx   # Is the remainder more than half
 	jb .l1				# no, round down
 	inc %eax			# yes, round up
 .l1:
+	mov $3, %ebx
+	mov $0, %edx
+	div %ebx
+	cmp $1, %edx
+	jb .l2
+	inc %eax
+.l2:
 
 
 .gotReloadValue:
 	push %eax 					# store reload value for later
 	movw %ax, (PIT_reload_value)	# also store it here
-
 	mov %eax, %ebx
 	
-	mov $1193181, %eax
+	mov $3579545, %eax
 	mov $0, %edx
 	div %ebx
-	cmp $596591, %edx
-	jb .l2
+	cmp $1789772, %edx
+	jb .l3
 	inc %eax
-.l2:
-
+.l3:
+	mov $3, %ebx
+	mov $0, %edx
+	div %ebx
+	cmp $1, %edx
+	jb .l4
+	inc %eax
+.l4:
+	mov %eax, (IRQ0_frequency)
 
 	# Calculate the amount of time between IRQs in 32.32 fixed point
 	# Note: basic formula:
 	# 	time in ms = reload_value / 1193181 * 1000
 	
 	pop %ebx
-	mov $0x493BE020, %eax	# eax = 1000 * (2^42) / 1,193,181Hz
-	mul %ebx				# edx:eax = reload_val
-	shrd $10, %edx, %eax		# divide response by 2^10
+	mov $0xDBB3A062, %eax	
+	mul %ebx				
+	shrd $10, %edx, %eax		
 	shr $10, %edx
 
 	mov %edx, (IRQ0_ms)			
@@ -122,6 +136,9 @@ init_PIT:
 	sti
 
 	popfl
+
+	pop %edx
+	pop %ebx
 
 	mov %ebp, %esp
 	pop %ebp

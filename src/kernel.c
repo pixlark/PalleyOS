@@ -2,18 +2,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <cpuid.h>
-#include <gdt.h>
-#include <idt.h>
-#include <io.h>
-#include <keyboard_io.h>
-#include <kheap.h>
-#include <kstdio.h>
-#include <memory.h>
-#include <pci.h>
-#include <terminal_proc.h>
 #include <timer.h>
-#include <tio.h>
+#include <gdt.h>
+#include <cpuid.h>
+#include <kstdio.h>
+#include <kstdlib.h>
+#include <pci.h>
+#include <pic.h>
+#include <ata.h>
+#include <io.h>
+#include <terminal_proc.h>
+#include "paging.h"
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -36,6 +35,9 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	/* Set up GDT */	
 	kprintf("Setting up GDT\n");
 	setup_gdt();
+
+	/* Init PIT */
+	init_PIT_timer();
     
     
     // Inform the memory unit of our physical memory situation

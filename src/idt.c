@@ -49,6 +49,7 @@ struct IDTInfo {
 	uint32_t offset; // Virtual Address of the Table
 } __attribute__((packed));
 
+// Located in boot.s
 extern void load_idt(void);
 
 struct IDTEntry idt_entries[256];
@@ -76,7 +77,35 @@ bool add_isr_to_idt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 	return true;
 }
 
-/* EXCEPTIONS */
+void IRQ_set_mask(uint8_t irq_line) {
+	uint16_t port;
+	uint8_t value;
+
+	if(irq_line < 8)
+		port = PIC1_DATA;
+	else {
+		port = PIC2_DATA;
+		irq_line -= 8;
+	}
+	value = inb(port) | (1 << irq_line);
+	outb(port, value);
+}
+
+void IRQ_clear_mask(uint8_t irq_line) {
+    uint16_t port;
+    uint8_t value;
+ 
+    if(irq_line < 8) {
+        port = PIC1_DATA;
+    } else {
+        port = PIC2_DATA;
+        irq_line -= 8;
+    }
+    value = inb(port) & ~(1 << irq_line);
+    outb(port, value);        
+}
+
+/* ===== EXCEPTIONS ===== */
 // Divide by Zero (Fault) (0)
 extern void div_by_zero_isr(void);
 void div_by_zero_handler() {
@@ -211,7 +240,7 @@ void virt_handler() {
 /* ====== Interrupts ===== */
 
 // Timer IRQ (PIT)
-extern void IRQ0_handler();
+extern void TimerIRQ();
 
 // Keyboard Input (PC/2)
 extern void keyboard_isr(void);
@@ -226,7 +255,6 @@ void handle_idt_setup() {
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.offset = (uint32_t) &idt_entries;
 
-	//add_isr_to_idt(0, &IRQ0_handler, 0, INTERRUPT_GATE_32);
 	add_isr_to_idt(0, &div_by_zero_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(1, &debug_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(3, &breakpoint_isr, 0, TRAP_GATE_32);
@@ -246,15 +274,17 @@ void handle_idt_setup() {
 	add_isr_to_idt(19, &simd_fpe_isr, 0, TRAP_GATE_32);
 	add_isr_to_idt(20, &virt_isr, 0, TRAP_GATE_32);
 
-	for(int i = 0x20; i < 0x20+16; i++)
+	add_isr_to_idt(0x20, &TimerIRQ, 0, INTERRUPT_GATE_32);
+	for(int i = 0x21; i < 0x20+16; i++)
 		add_isr_to_idt(i, &keyboard_isr, 0, INTERRUPT_GATE_32);	
 
 	load_idt();
 
+	outb(PIC1_DATA, 0xFC);
+	outb(PIC2_DATA, 0xFF);
 
 	kprintf("idt_entries loc: 0x%x\n", idt_entries);
 	enable_interrupts();
-
 }
 
 /*

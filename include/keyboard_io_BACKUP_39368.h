@@ -41,6 +41,7 @@ void handle_scancode_queue(void);
 struct mapped_key kb_next_mapped_key(void);
 char kb_next_char();
 bool kb_has_new_input();
+
 =======
 
 #define ARROW_UP	0x8c
@@ -73,5 +74,4 @@ void handle_scancode_queue(void);
 struct mapped_key kb_next_mapped_key(void);
 char kb_next_char();
 bool kb_has_new_input();
-
->>>>>>> ata
+>>>>>>> 701a2841bebe75df493df47c1a6a5a66622477fe
