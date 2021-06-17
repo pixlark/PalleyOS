@@ -40,4 +40,3 @@ void handle_scancode_queue(void);
 struct mapped_key kb_next_mapped_key(void);
 char kb_next_char();
 bool kb_has_new_input();
-

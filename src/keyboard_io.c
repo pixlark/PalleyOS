@@ -104,11 +104,11 @@ const struct spec_keys_mapped special_keys_to_mapped = {
 	 .del = 0x4e
 };
 
-inline uint8_t set1_to_mapped(uint8_t scancode1) {
+uint8_t set1_to_mapped(uint8_t scancode1) {
 	return scancode_set1_to_mapped[scancode1];
 }
 
-inline uint8_t special_to_mapped(uint8_t scancode1) {
+uint8_t special_to_mapped(uint8_t scancode1) {
 	return *( ((uint8_t*)&special_keys_to_mapped) + scancode1);
 }
 

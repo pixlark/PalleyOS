@@ -1,0 +1,123 @@
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include <idt.h>
+<<<<<<< HEAD
+#include <tio.h>
+#include <io.h>
+=======
+>>>>>>> Added terminal scrolling and basic keyboard interface
+#include <timer.h>
+#include <gdt.h>
+#include <cpuid.h>
+#include <kstdio.h>
+<<<<<<< HEAD
+#include <memory.h>
+=======
+#include <pci.h>
+#include <terminal_proc.h>
+
+#include "paging.h"
+>>>>>>> Added terminal scrolling and basic keyboard interface
+
+#if defined(__linux__)
+#error "You are not using the cross compiler, silly goose"
+#endif
+
+#if !defined(__i386__)
+#error "must use x86"
+#endif
+
+void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
+    // Get RAM info from GRUB
+    if (magic != 0x2BADB002) {
+        return;
+    }
+
+<<<<<<< HEAD
+	/* Set up IDT */
+	kprintf("Setting up the IDT\n");
+	handle_idt_setup();
+=======
+	// Set up Identity Paging
+	// frame #00 -> 00000000...000fffff
+	// frame #01 -> 00400000...004fffff
+	// And so on
+
+	// Map all memory
+	kprintf("Using Identity Mapping...\n");
+	int from = 0;
+	uint32_t four_mib = 1024*1024*4;
+	uint32_t* first_pde = page_directory;
+	for(int num_entries = 256; num_entries > 0; num_entries--, from+= four_mib, first_pde++){
+		*first_pde = from | 3;	
+		*first_pde |= PS_BIT;
+	}
+
+	kprintf("Attempting to enter paging mode\n");
+	enable_paging(page_directory);
+	kprintf("In paging mode!\n");
+>>>>>>> Added terminal scrolling and basic keyboard interface
+
+	/* Set up GDT */	
+	kprintf("Setting up GDT\n");
+	setup_gdt();
+    
+<<<<<<< HEAD
+=======
+	/* Set up IDT */
+	kprintf("Setting up the IDT\n");
+	handle_idt_setup();
+
+    // 3735928559
+>>>>>>> Added terminal scrolling and basic keyboard interface
+    
+    // Inform the memory unit of our physical memory situation
+    load_physical_memory_region_descriptors(multiboot_info);
+
+    // Now, setup paging so we can use our physical memory
+    setup_paging();
+
+	/* Init Timer and PIT */
+//	init_timer();
+
+<<<<<<< HEAD
+//	for(int i = 0; i < 256; i++){
+//		kprintf("%d\n", i);
+//	}
+	
+	//load_cpuid();
+	//print_cpuid_vendor();
+
+    uint8_t* ptr = 0x400000;
+    *ptr = 0xff;
+    kprintf("(0x400000): %x\n", *ptr);
+
+    ptr = 0x7fffff;
+    *ptr = 0xff;
+    kprintf("(0x7fffff): %x\n", *ptr);
+
+    ptr = 0x800000;
+    *ptr = 0xff;
+    kprintf("(0x800000): %x\n", *ptr);
+
+    ptr = 0xffffffff;
+    *ptr = 0xff;
+    kprintf("(0xffffffff): %x\n", *ptr);
+
+    ptr = 0x8000;
+    *ptr = 0xff;
+    kprintf("(0x8000): %x\n");
+    
+	//setup_keyboard();
+=======
+	load_cpuid();
+	print_cpuid_vendor();
+
+//	pci_check_all_buses();
+
+	terminal_proc_start();
+
+>>>>>>> Added terminal scrolling and basic keyboard interface
+}
