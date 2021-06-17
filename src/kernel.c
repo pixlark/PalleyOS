@@ -10,6 +10,8 @@
 #include <cpuid.h>
 #include <keyboard_io.h>
 #include <kstdio.h>
+#include <pci.h>
+#include <terminal_proc.h>
 #include <memory.h>
 
 #if defined(__linux__)
@@ -44,32 +46,11 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	/* Init Timer and PIT */
 //	init_timer();
 
-//	for(int i = 0; i < 256; i++){
-//		kprintf("%d\n", i);
-//	}
-	
-	//load_cpuid();
-	//print_cpuid_vendor();
+	load_cpuid();
+	print_cpuid_vendor();
 
-    uint8_t* ptr = 0x400000;
-    *ptr = 0xff;
-    kprintf("(0x400000): %x\n", *ptr);
+//	pci_check_all_buses();
 
-    ptr = 0x7fffff;
-    *ptr = 0xff;
-    kprintf("(0x7fffff): %x\n", *ptr);
+	terminal_proc_start();
 
-    ptr = 0x800000;
-    *ptr = 0xff;
-    kprintf("(0x800000): %x\n", *ptr);
-
-    ptr = 0xffffffff;
-    *ptr = 0xff;
-    kprintf("(0xffffffff): %x\n", *ptr);
-
-    ptr = 0x8000;
-    *ptr = 0xff;
-    kprintf("(0x8000): %x\n");
-    
-	//setup_keyboard();
 }

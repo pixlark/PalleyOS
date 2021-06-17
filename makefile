@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g
+FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g -std=c99
 QEMU_FLAGS=-m 64M -cdrom $(BUILD_DIR)/palleyos.iso
 
 SRC_DIR=src
@@ -16,6 +16,8 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/idt.o \
 	$(OBJ_DIR)/isr.o \
 	$(OBJ_DIR)/gdt.o \
+	$(OBJ_DIR)/pci.o \
+	$(OBJ_DIR)/k_term_proc.o \
 	$(OBJ_DIR)/cpuid.o \
 	$(OBJ_DIR)/cpuid_fetch.o \
 	$(OBJ_DIR)/keyboard_io.o \

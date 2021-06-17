@@ -5,33 +5,57 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <kstdio.h>
 #include <io.h>
+#include <tio.h>
 
-#include "tio.h"
-
-uint16_t* video_buff = (uint16_t*) 0xB8000;
+uint16_t* vb = (uint16_t*) 0xB8000;
 
 size_t term_row = 0;
 size_t term_col = 0;
-static const size_t TERM_WIDTH = 80; 
-static const size_t TERM_HEIGHT = 25; 
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color);
+// For saving up to 20 pages of terminal
+static uint16_t pvb[PVB_SIZE] = {' ' | VGA_COLOR_BLACK << 8};
+static int pvb_row = PVB_NUM_ROWS / 2; 
 
 static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-void inc_cursor() {
+static void write_screen_from_pvb();
+static void update_cursor(int x, int y);
+
+/* TODO: This should be called whenever tryiing to write
+ * at term_row, term_col. The screen could be shifted.
+ * If that is the case, this will shift the screen so 
+ * the user can see where they are typing
+ */
+static void fix_screen_pos() {}
+
+static void inc_cursor() {
 	term_col++;
 	if(term_col >= TERM_WIDTH) {
 		term_row++;
 		term_col = 0;
 	}
 
-	if(term_row >= TERM_HEIGHT-1) shift_term_line_up(1);
+	if(term_row >= TERM_HEIGHT-1) tio_shift_term_line(1);
 }
 
+void tio_dec_cursor() {
+	term_col--;
+	if(term_col < 0){
+		term_row--;
+		term_col = TERM_WIDTH-1;
+	}
+	if(term_row < 0) term_row = 0;
+
+	int index = term_row*TERM_WIDTH + term_col;
+	vb[index] = ' ' | VGA_COLOR_BLACK; 
+	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
+
+	update_cursor(term_col+1, term_row);
+}
 
 inline void term_write_char(char c) {
 	term_write_char_color(c, VGA_COLOR_WHITE);
@@ -43,7 +67,7 @@ void term_write_char_color(char c, vga_color vc){
 		term_row ++;
 		term_col = 0;
 		if(term_row >= TERM_HEIGHT-1)
-			shift_term_line_up(1);
+			tio_shift_term_line(1);
 		return;
 	}else if(c == '\r'){
 		term_col = 0;
@@ -51,8 +75,10 @@ void term_write_char_color(char c, vga_color vc){
 	}
 
 	int index = term_row*TERM_WIDTH + term_col;
-	video_buff[index] = vga_entry(c, vc);
+	vb[index] = vga_entry(c, vc);
+	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
 	inc_cursor();
+	update_cursor(term_col, term_row);
 }
 
 void term_write(char* string) {
@@ -68,108 +94,69 @@ void term_write_color(char* string, vga_color vc) {
 
 }
 
-void term_write_int(int n, unsigned int base) {
-	term_write_int32((int32_t) n, base);
+void tio_enable_cursor()
+{
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, (inb(0x3D5) & 0xC0) | 0);
+
+	outb(0x3D4, 0x0B);
+	outb(0x3D5, (inb(0x3D5) & 0xE0) | 15);
 }
 
-void term_write_int32(int32_t n, unsigned int base) {
+static void update_cursor(int x, int y)
+{
+	uint16_t pos = y * TERM_WIDTH + x;
+	if(pos >= VB_SIZE || pos < 0) return;
+ 
+	outb(0x3D4, 0x0F);
+	outb(0x3D5, (uint8_t) (pos & 0xFF));
+	outb(0x3D4, 0x0E);
+	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+}
 
-	bool negative = n < 0;	
-	if(base == 16) term_write("0x");
-	else if(base == 2) term_write("0b");
-	else if(base == 8) term_write("0");
-
-	if(negative)
-		n = ~n + 1; // convert to positive number 
-
-	// Calculate length
-	uint8_t len = 0;
-	int cpy = n;
-	while(cpy > 0){
-		len ++;	
-		cpy /= base;
-	}	
-
-	if(len == 0) len++;
+static void shift_pvb_to_halfway() {
 	
-	if(negative) len += 1;
-		
-	char buf[len];
-	for(int i = 0; i < len; i++)
-		buf[i] = '0';
+	int shift_dist = pvb_row - (PVB_NUM_ROWS/2);
+	if(shift_dist < 0) return; // Shifting down not implemented
 
-	int i = 0;
-	while(n > 0){
-		if(n % base <= 10) 
-			buf[i] = (n % base) + '0';
-		else
-			buf[i] = ((n-10) % base) + 'a';
-		n /= base;	
-		i++;
+	for(int row = 0; row < PVB_NUM_ROWS; row++){
+		for(int col = 0; col < TERM_WIDTH; col++){
+			int pvb_index = row*TERM_WIDTH + col;
+			int prev_pvb_index = (row + shift_dist)*TERM_WIDTH + col;
+			if(row + shift_dist > PVB_NUM_ROWS)
+				pvb[pvb_index] = 0; 
+			else
+				pvb[pvb_index] = pvb[prev_pvb_index];
+		}
 	}
 
-	if(negative)
-		buf[len-1] = '-';
-
-	for(int i = len-1; i >= 0; i--){
-		term_write_char(buf[i]);
-	}
+	pvb_row = PVB_NUM_ROWS/2;
 }
 
+void tio_shift_term_line(int n) {
+	int desired_pvb_row = pvb_row + n;
 
-void term_write_uint32(uint32_t n, unsigned int base) {
-	
-	if(base == 16) term_write("0x");
-	else if(base == 2) term_write("0b");
-	else if(base == 8) term_write("0");
-
-	// Calculate length
-	uint8_t len = 0;
-	int cpy = n;
-	while(cpy > 0){
-		len ++;	
-		cpy /= base;
-	}	
-
-	if(base == 16)
-		len = 8;	
-		
-	char buf[len];
-	for(int i = 0; i < len; i++)
-		buf[i] = '0';
-
-	int i = 0;
-	while(n > 0){
-		if(n % base <= 9) 
-			buf[i] = (n % base) + '0';
-		else
-			buf[i] = ((n-10) % base) + 'a';
-		n /= base;	
-		i++;
+	// If we hit top, no more scrolling, just print the screen
+	if(pvb_row + n < 0) {
+		pvb_row = 0;
+	}
+	else if(pvb_row > PVB_NUM_ROWS-1){
+		shift_pvb_to_halfway();
+		term_row = 0;
+	}
+	else{
+		pvb_row = desired_pvb_row;
+		term_row -= n;
 	}
 
-	for(int i = len-1; i >= 0; i--){
-		term_write_char(buf[i]);
-	}
+	write_screen_from_pvb();
 }
 
-// TODO: Make this save the old lines in memory so we can access late (scroll down)
-void shift_term_line_up(unsigned int n) {
+static void write_screen_from_pvb(){
 	disable_interrupts();
-	for(uint32_t i = 0; i < TERM_HEIGHT - 1; i++) {
-		for(uint32_t j = 0; j < TERM_WIDTH; j++) {
-			video_buff[i*TERM_WIDTH + j] = video_buff[(i+n)*TERM_WIDTH + j];
-		}
-	}
-	term_row -= n;
-
+	int pvb_offset = pvb_row*TERM_WIDTH;
+	for(int i = 0; i < VB_SIZE; i++)
+	   	vb[i] = pvb[pvb_offset+i];
 	enable_interrupts();
-	/*
-	for(uint16_t i = TERM_HEIGHT - n; i < TERM_HEIGHT; i++) {
-		for(uint16_t j = 0; j < TERM_WIDTH; j++) {
-			video_buff[i*TERM_WIDTH + j] = vga_entry(' ', VGA_COLOR_BLACK);	
-		}
-	}
-	*/
 }
 

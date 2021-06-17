@@ -15,7 +15,6 @@
 #define PIC2_COMMAND	PIC2
 #define PIC2_DATA		(PIC2+1)
 
-
 #define ICW1	0x11
 #define ICW4	0x01
 #define ICW1_ICW4	0x01		/* ICW4 (not) needed */
@@ -214,12 +213,10 @@ void virt_handler() {
 // Timer IRQ (PIT)
 extern void IRQ0_handler();
 
-// Keyboard Input (PIC)
+// Keyboard Input (PC/2)
 extern void keyboard_isr(void);
 
-
 void init_PIC(int, int);
-
 
 /* ======== SETUP ======== */
 void handle_idt_setup() {
@@ -255,12 +252,11 @@ void handle_idt_setup() {
 	load_idt();
 
 
-	term_write("idt_entries loc: ");
-	term_write_uint32((uint32_t) idt_entries, 16);
-	term_write("\n");
+	kprintf("idt_entries loc: 0x%x\n", idt_entries);
 	enable_interrupts();
 
 }
+
 /*
  We need to remap the PIC, because the original placing of it (0x0-0xF)
  Interferes with the exception handling (Design Flaw)
