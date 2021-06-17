@@ -2,17 +2,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <idt.h>
-#include <tio.h>
-#include <io.h>
-#include <timer.h>
-#include <gdt.h>
 #include <cpuid.h>
+#include <gdt.h>
+#include <idt.h>
+#include <io.h>
 #include <keyboard_io.h>
+#include <kheap.h>
 #include <kstdio.h>
+#include <memory.h>
 #include <pci.h>
 #include <terminal_proc.h>
-#include <memory.h>
+#include <timer.h>
+#include <tio.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -43,6 +44,8 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
     // Now, setup paging so we can use our physical memory
     setup_paging();
 
+    initialize_kheap();
+
 	/* Init Timer and PIT */
 //	init_timer();
 
@@ -51,6 +54,18 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 
 //	pci_check_all_buses();
 
-	terminal_proc_start();
+    /*
+    kprintf("BEFORE ANYTHING\n");
+    kheap_dump();
+    uint8_t* my_memory = kheap_alloc(100);
+    kprintf("ALLOCATED 100 BYTES\n");
+    kheap_dump();
+    uint8_t* more_memory = kheap_alloc(1000);
+    kprintf("ALLOCATED 1000 BYTES\n");
+    kheap_dump();
+    uint8_t* even_more_memory = kheap_alloc(15);
+    kprintf("ALLOCATED 15 BYTES\n");
+    kheap_dump();*/
 
+	terminal_proc_start();
 }

@@ -25,7 +25,8 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/timer.o \
 	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o \
 	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o 
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kheap.o 
 
 all: $(BUILD_DIR)/palleyos.iso
 
