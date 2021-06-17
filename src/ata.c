@@ -399,6 +399,6 @@ uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 
 }
 
-void ata_test {
+void ata_test (){
 }
 
