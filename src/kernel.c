@@ -12,7 +12,9 @@
 #include <ata.h>
 #include <io.h>
 #include <terminal_proc.h>
-#include "paging.h"
+#include <memory.h>
+#include <idt.h>
+#include <kheap.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"

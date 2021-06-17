@@ -48,17 +48,20 @@ void load_cpuid() {
 	fetch_cpuid();	
 	load_cpuid_features((intptr_t)&cpuid.ecx_features, (intptr_t)&cpuid.edx_features);
 	
+	if(cpuid.edx_features & (1 << 9)) {
 		kprintf("Has Built in APIC!\n");
-	else
+	}else {
 		kprintf("No APIC found :(\n");
+	}
 }
-
 
 void print_cpuid_vendor() {
 	if(fetch_cpuid()) {
-		kprintf(cpuid.vendor_id);
-		kprintf("\n");
-	} else kprintf("CPUID not available :(\n");
+        kprintf("vendor id: ");
+        kprintf(cpuid.vendor_id);
+        kprintf("\n");
+	} else 
+		kprintf("CPUID not available :(\n");
 }
 
 

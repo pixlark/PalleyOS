@@ -52,10 +52,6 @@ PCIDevice pci_get_device(uint8_t bus, uint8_t device, uint8_t func) {
 	return ret;
 }
 
-uint8_t pci_get_secondary_bus(uint8_t bus, uint8_t device, uint8_t func) {
-	return (pci_config_read_word(bus, device, func, 0x18) & 0xff00) >> 8;
-}
-
 uint32_t pci_read_bar(uint8_t bus, uint8_t device, uint8_t func, uint8_t bar_num) {
 	uint32_t address;
 	uint32_t lbus  = (uint32_t)bus;
