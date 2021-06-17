@@ -60,8 +60,6 @@ enable_paging:
 flush_tlb:
     movl %cr3, %eax
     movl %eax, %cr3
-    #movl 8(%esp), %eax
-    #invlpg 8l(%esp) 
     ret
 
 # Function that takes in a pointer to the 

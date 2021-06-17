@@ -9,6 +9,57 @@ const uint32_t FRAME_SIZE = 4 * 1024 * 1024;
 // equivalent sections of the physical address space.
 static PageDirEntry page_directory[1024] __attribute__((aligned(4096)));
 
+typedef enum {
+    PAGE_SIZE_4_KIB,
+    PAGE_SIZE_4_MIB
+} PageSize;
+
+typedef enum {
+    PAGE_READ_ONLY,
+    PAGE_READ_WRITE
+} PageRW;
+
+typedef enum {
+    PAGE_SUPERVISOR_ONLY,
+    PAGE_USER_AND_SUPERVISOR
+} PagePermission;
+
+static PageDirEntry construct_page_dir_entry(
+    uint32_t pfn,
+    PageSize page_size,
+    PageRW rw,
+    PagePermission permission
+) {
+    PageDirEntry entry = 0;
+    // Sanity check (slow, but we're new and bugs are scary)
+    if (pfn >= 0x40000) {
+        kprintf("construct_page_dir_entry received a bad PFN!\n");
+        while (true);
+    }
+    entry |= pfn << 22; // bits 31:22
+    entry |= (page_size == PAGE_SIZE_4_MIB)
+        ? (1 << 7) : 0;
+    entry |= (rw == PAGE_READ_WRITE)
+        ? (1 << 1) : 0;
+    entry |= (permission == PAGE_USER_AND_SUPERVISOR)
+        ? (1 << 2) : 0;
+    entry |= 1; // Mark present
+    return entry;
+}
+
+static PageDirEntry construct_empty_page_dir_entry(
+    PageSize page_size,
+    PageRW rw,
+    PagePermission permission
+) {
+    PageDirEntry entry =
+        construct_page_dir_entry(0, page_size, rw, permission);
+    // Clear present bit
+    entry &= ~1;
+    return entry;
+}
+
+
 // This is a bitfield that keeps track of which page frames are in
 // use, versus which ones are still free. This DOES NOT keep track of
 // any parts of physical memory that are completely unavailable
@@ -86,7 +137,7 @@ void handle_page_fault() {
         uint32_t remaining_size = region->size - (frame_start - region->address);
         
         uint8_t frame_count = remaining_size / FRAME_SIZE;
-        kprintf("frame start: %x; frame count: %d\n", frame_start, frame_count);
+        //kprintf("frame start: %x; frame count: %d\n", frame_start, frame_count);
         for (uint32_t frame = 0; frame < frame_count; frame++) {
             uint32_t address = frame_start + frame * FRAME_SIZE;
             pfn = get_physical_frame_number(address);
@@ -105,16 +156,14 @@ void handle_page_fault() {
 
     // Now, update the page directory to reference this frame
     uint32_t vpn = get_virtual_page_number(fault_address);
-	page_directory[vpn] |= (1 << 7); 	// Set Page Size (4MiB)
-    //page_directory[vpn] |= (pfn << 22); // Set PFN
-    page_directory[vpn] |= (1 << 22); // Set PFN
-    page_directory[vpn] |= (3 << 5); // Set PFN
-    page_directory[vpn] |= 3;           // Mark page as present
+	page_directory[vpn] = construct_page_dir_entry(
+        pfn, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
+    );
 
     // Invalidate the TLB, so that the processor will reflect these changes
     flush_tlb(); 
 
-    kprintf("Mapped page %d to frame %d (word %d, position %d)\n", vpn, pfn, pfn / 32, pfn % 32);
+    //kprintf("Mapped page %d to frame %d (word %d, position %d)\n", vpn, pfn, pfn / 32, pfn % 32);
 }
 
 typedef struct {
@@ -168,16 +217,23 @@ const uint32_t PS_BIT = (1<<7);
 
 void setup_paging() {
     // Zero the page directory entirely
+    //  We're setting proper bits on these unused entries, but we
+    //  really don't need to. The OS will never look at an entry until
+    //  it's marked present.
     for (int i = 0; i < 1024; i++) {
-        PageDirEntry entry = 0;
-        entry |= PS_BIT; // 4 MiB page size
-        entry |=  0b10;  // Read/Write
-        entry |= 0b100;  // User/Supervisor
-        page_directory[i] = entry;
+        page_directory[i] = 0;
+        /*
+        page_directory[i] = construct_empty_page_dir_entry(
+            PAGE_SIZE_4_MIB,
+            PAGE_READ_WRITE,
+            PAGE_USER_AND_SUPERVISOR
+            );*/
     }
 
     // Map low memory (first 4MB) (this is what we're operating under)
-    page_directory[0] |= 0b11;
+    page_directory[0] = construct_page_dir_entry(
+        0, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
+    );
 
     // Zero out our physical page frame map (no pages allocated)
     for (int i = 0; i < 32; i++) {

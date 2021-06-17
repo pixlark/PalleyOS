@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g 
+FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g
 QEMU_FLAGS=-m 64M -cdrom $(BUILD_DIR)/palleyos.iso
 
 SRC_DIR=src

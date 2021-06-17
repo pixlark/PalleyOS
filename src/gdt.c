@@ -52,7 +52,7 @@ void setup_gdt() {
 	 * Uses 32-bit opcodes
 	 * Code Segment Descriptor
 	 */
-	gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); 
+	gdt_set_gate(1, 0, 0xffffffff, 0x9A, 0xCF); 
 
 	/* Data Segment Descriptor
 	 * Same as above but descriptor type is DS
