@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <kstdio.h>
+#include <kstdlib.h>
 #include <io.h>
 #include <ata.h>
 #include <timer.h>
@@ -54,6 +55,7 @@ uint8_t ide_polling (uint8_t channel, uint32_t advanced_check) {
 	// 1. Delay 400 nanosecond for BSY to be set
 	for(int i = 0; i < 4; i++)
 		ide_read(channel, ATA_REG_ALTSTATUS); // This wastes 100ns
+    sleep(1);
 
 	// 2. Wait for BSY to be cleared
 	while(ide_read(channel, ATA_REG_STATUS) & ATA_SR_BSY);
@@ -62,8 +64,9 @@ uint8_t ide_polling (uint8_t channel, uint32_t advanced_check) {
 		uint8_t state = ide_read(channel, ATA_REG_STATUS); 
 
 		// 3. Check for errors
-		if (state & ATA_SR_ERR)
+		if (state & ATA_SR_ERR) {
 			return 2; // Error
+		}
 
 		// 4. Check if Device Fault
 		if (state & ATA_SR_DF)
@@ -226,9 +229,11 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 		}
 }
 
+extern void ata_read_from_port(uint16_t port, char* buffer, uint32_t num_reads);
+extern void ata_write_to_port(uint16_t port, char* buffer, uint32_t num_reads);
 // Used by ide_read/write_sectors
 uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
-						uint8_t num_sects, uint16_t selector, uint32_t offset) {
+						uint8_t num_sects, uint16_t selector, char* buffer) {
 	uint8_t lba_mode, 	/* 0: CHS, 1:LBA48 */
 			dma, 	   	/* 0: No DMA, 1: DMA */ 
 			cmd;
@@ -248,6 +253,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 
 	// 1. Read the Parameters, select from LBA28, LBA48, or CHS
 	if (lba >= 0x10000000) { // LBA 48 is the only one accessible here
+        kprintf("LBA48 mode\n");
 		lba_mode = 2;
 		lba_io[0] = (lba & 0x000000FF) >> 0;
 		lba_io[1] = (lba & 0x0000FF00) >> 8;
@@ -258,6 +264,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 		head 	  = 0; // Lower 4-bits of HDDEVSEL are not used here
 	} else if (ide_devices[drive].capabilities & 0x200) { // Drive supports LBA?
 		// LBA28:
+        kprintf("LBA28 mode\n");
 		lba_mode = 1;
 		lba_io[0] = (lba & 0x000000FF) >> 0;
 		lba_io[1] = (lba & 0x0000FF00) >> 8;
@@ -320,28 +327,36 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 	if (lba_mode == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
 	if (lba_mode == 1 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
 	if (lba_mode == 2 && dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
+	ide_write(channel, ATA_REG_COMMAND, cmd);
 
 	// After sending the command, we should poll, then read/write a sector and repeat
 	// until all sectors needed, or if an error has occured, the function will
 	// return a specific error code
 	if (dir == 0) {
 		for (int i = 0; i < num_sects; i++) {
-			if(err = ide_polling(channel, 1))
+			if((err = ide_polling(channel, 1))) {
 				return err; // Polling, set error and exit if there is;
-			asm("pushw %es");
-			asm("mov %%ax, %%es"::"a"(selector));
-			asm("rep insw"::"c"(words), "d"(bus), "D"(offset)); // Receive Data
-			asm("popw %es");
-			offset += (words*2);
+			}
+			kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+            for(size_t j = 0; j < words*2; j+=2) {
+                uint16_t tmp = inw(bus);
+                buffer[j] = (tmp & 0xff00) >> 8;
+                buffer[j+1] = tmp & 0xff;
+            }
+			//ata_read_from_port(bus, buffer, words);
+			buffer += (words*2);
 		}
 	} else {
 		for (int i = 0; i < num_sects; i++) {
 			ide_polling(channel, 0); // Polling
-			asm("pushw %ds");
-			asm("mov %%ax, %%ds"::"a"(selector));
-			asm("rep outsw"::"c"(words), "d"(bus), "S"(offset)); // Send Data
-			asm("popw %ds");
-			offset += (words*2);
+			kprintf("ATA Writing!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+            for(size_t j = 0; j < words*2; j+=2) {
+                uint16_t tmp = ((uint16_t)buffer[j] <<8);
+                tmp |= (uint16_t)buffer[j+1] & 0xff;
+                outw(bus, tmp);
+            }
+			//ata_write_to_port(bus, buffer, words);
+			buffer += (words*2);
 		}
 
 		// Flush the cache
@@ -357,7 +372,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 }
 
 uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
-					uint16_t selector, uint32_t offset) {
+					uint16_t selector, char* offset) {
 
 	// 1. Check if the drive presents:
 	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
@@ -371,15 +386,15 @@ uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 		uint8_t err = 0;
 		if(ide_devices[drive].type == IDE_ATA)
 			err = ide_ata_access(ATA_READ, drive, lba, num_sects, selector, offset);
-		else if(ide_devices[drive].type == IDE_ATAPI)
-			for(int i = 0; i < num_sects; i++) // Not implemented, should read from atapi
-		return ide_print_error(drive, err);	
+
+        ide_print_error(drive, err);	
+		return err; 
 	}
 	return 0;
 }
 
 uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
-						uint16_t selector, uint32_t offset) {
+						uint16_t selector, char * offset) {
 	// 1. Check if the drive presents:
 	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
 	
@@ -400,5 +415,22 @@ uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 }
 
 void ata_test (){
+	uint8_t bytes[512];
+	uint8_t read[512];
+	for(int i = 0; i < 512; i++) read[i] = 0x00;
+	for(int i = 0; i < 512; i++) bytes[i] = 0x00;
+    char* str = "Hello there paulio";
+    kstrcpy((char*)bytes, str);
+
+	uint8_t err = ide_write_sectors(0, 1, 512*8, 0, (char*)bytes);
+	if(err == 0)
+		kprintf("no write errors\n");
+	err = ide_read_sectors(0, 1, 512*8, 0, (char*)read);
+	if(err == 0) {
+		kprintf("no read errors\n");
+        kprintf("%s\n", (char*)read);
+        kprintf("\n");
+    }
+
 }
 

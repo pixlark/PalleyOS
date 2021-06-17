@@ -97,7 +97,7 @@ run-bin: $(BUILD_DIR)/palleyos.iso
 		-drive format=raw,file=./palleyos.img
 
 run-server: $(BUILD_DIR)/palleyos.iso
-	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso -s
+	qemu-system-i386 -m 256M -cdrom $(BUILD_DIR)/palleyos.iso -s -S
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)

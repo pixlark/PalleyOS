@@ -1,5 +1,6 @@
 #pragma once
-
+#include <stddef.h>
+#include <stdint.h>
 /*
    Enumerating the PCI, we find IDE Controllers or ATA Controllers.
    We know they are the correct type of controllers because the

@@ -3,5 +3,4 @@
 
 void handle_idt_setup();
 
-
 #endif

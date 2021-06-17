@@ -73,7 +73,7 @@ void kernel_main(void) {
 
 	pci_check_all_buses();
 
-	ata_init();
+	ata_test();
 
 	terminal_proc_start();
 }
