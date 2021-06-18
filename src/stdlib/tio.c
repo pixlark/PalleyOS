@@ -71,7 +71,10 @@ void tio_backspace() {
 void tio_shift_right() {
     for(size_t i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
        vb[i] = vb[i-1]; 
+	for(size_t j = pvb_row*TERM_WIDTH+VB_SIZE-1; j > pvb_row*TERM_WIDTH + term_col; j--)
+		pvb[j] = pvb[j-1];
     vb[(term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
+    pvb[(pvb_row*TERM_WIDTH) + (term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
 }
 
 void tio_shift_left() {
@@ -79,6 +82,12 @@ void tio_shift_left() {
     if(term_col == 0) vb_index += 1;
     for(size_t i = vb_index; i < VB_SIZE; i++) 
        vb[i] = vb[i+1]; 
+
+	size_t pvb_index = (pvb_row*TERM_WIDTH + +term_row*TERM_WIDTH + term_col) - 1;
+    if(term_col == 0) pvb_index += 1;
+	for(size_t j = pvb_index; j < pvb_row*TERM_WIDTH + VB_SIZE; j++)
+		pvb[j] = pvb[j+1];
+	write_screen_from_pvb();
 }
 
 inline void term_write_char(char c) {

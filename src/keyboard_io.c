@@ -391,7 +391,12 @@ void kbGetLine(char* buffer) {
                 index ++;
                 tio_inc_cursor();
                 if(index > size-1) index = size-1;
-            }else if(key.mapped_code == KEY_BACKSPACE) {
+            }else if(key.mapped_code == KEY_ARROW_UP) {
+				tio_shift_term_line(1);
+			}else if(key.mapped_code == KEY_ARROW_DOWN) {
+				tio_shift_term_line(-1);
+			}else if(key.mapped_code == KEY_BACKSPACE) {
+				if(index <= 0) continue;
                 tio_shift_left();
                 if(index != size-1){
                     for(int i = index-1; i < size-1; i++)
