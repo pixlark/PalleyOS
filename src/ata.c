@@ -252,7 +252,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 
 	// 1. Read the Parameters, select from LBA28, LBA48, or CHS
 	if (lba >= 0x10000000) { // LBA 48 is the only one accessible here
-        kprintf("LBA48 mode\n");
+        //kprintf("LBA48 mode\n");
 		lba_mode = 2;
 		lba_io[0] = (lba & 0x000000FF) >> 0;
 		lba_io[1] = (lba & 0x0000FF00) >> 8;
@@ -263,7 +263,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 		head 	  = 0; // Lower 4-bits of HDDEVSEL are not used here
 	} else if (ide_devices[drive].capabilities & 0x200) { // Drive supports LBA?
 		// LBA28:
-        kprintf("LBA28 mode\n");
+        //kprintf("LBA28 mode\n");
 		lba_mode = 1;
 		lba_io[0] = (lba & 0x000000FF) >> 0;
 		lba_io[1] = (lba & 0x0000FF00) >> 8;
@@ -336,7 +336,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 			if((err = ide_polling(channel, 1))) {
 				return err; // Polling, set error and exit if there is;
 			}
-			kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+			//kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
             for(size_t j = 0; j < words*2; j+=2) {
                 uint16_t tmp = inw(bus);
                 buffer[j] = (tmp & 0xff00) >> 8;
@@ -348,7 +348,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 	} else {
 		for (int i = 0; i < num_sects; i++) {
 			ide_polling(channel, 0); // Polling
-			kprintf("ATA Writing!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+			//kprintf("ATA Writing!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
             for(size_t j = 0; j < words*2; j+=2) {
                 uint16_t tmp = ((uint16_t)buffer[j] <<8);
                 tmp |= (uint16_t)buffer[j+1] & 0xff;

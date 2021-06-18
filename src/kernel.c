@@ -58,28 +58,6 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	print_cpuid_vendor();
 
 	pci_check_all_buses();
-
-    /*
-    kprintf("BEFORE ANYTHING\n");
-    kheap_dump();
-    uint8_t* my_memory = kheap_alloc(100);
-    kprintf("ALLOCATED 100 BYTES\n");
-    kheap_dump();
-    uint8_t* more_memory = kheap_alloc(1000);
-    kprintf("ALLOCATED 1000 BYTES\n");
-    kheap_dump();
-    kheap_free(my_memory);
-    kprintf("FREED 100 BYTES\n");
-    kheap_dump();
-    uint8_t* even_more_memory = kheap_alloc(15);
-    kprintf("ALLOCATED 15 BYTES\n");
-    kheap_dump();
-    kheap_free(even_more_memory);
-    kprintf("FREED 15 BYTES\n");
-    kheap_dump();*/
-
-    kprintf("ATA TEST: \n");
-    ata_test();
-
+    
 	terminal_proc_start();
 }
