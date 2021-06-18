@@ -15,6 +15,7 @@
 #include <memory.h>
 #include <idt.h>
 #include <kheap.h>
+#include <timer.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -51,12 +52,12 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
     initialize_kheap();
 
 	/* Init Timer and PIT */
-//	init_timer();
+	init_PIT_timer();
 
 	load_cpuid();
 	print_cpuid_vendor();
 
-//	pci_check_all_buses();
+	pci_check_all_buses();
 
     /*
     kprintf("BEFORE ANYTHING\n");
@@ -76,6 +77,9 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
     kheap_free(even_more_memory);
     kprintf("FREED 15 BYTES\n");
     kheap_dump();*/
+
+    kprintf("ATA TEST: \n");
+    ata_test();
 
 	terminal_proc_start();
 }

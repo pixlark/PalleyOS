@@ -55,7 +55,6 @@ uint8_t ide_polling (uint8_t channel, uint32_t advanced_check) {
 	// 1. Delay 400 nanosecond for BSY to be set
 	for(int i = 0; i < 4; i++)
 		ide_read(channel, ATA_REG_ALTSTATUS); // This wastes 100ns
-    sleep(1);
 
 	// 2. Wait for BSY to be cleared
 	while(ide_read(channel, ATA_REG_STATUS) & ATA_SR_BSY);
