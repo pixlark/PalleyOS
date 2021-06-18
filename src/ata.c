@@ -232,7 +232,7 @@ extern void ata_read_from_port(uint16_t port, char* buffer, uint32_t num_reads);
 extern void ata_write_to_port(uint16_t port, char* buffer, uint32_t num_reads);
 // Used by ide_read/write_sectors
 uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
-						uint8_t num_sects, uint16_t selector, char* buffer) {
+						uint8_t num_sects, char* buffer) {
 	uint8_t lba_mode, 	/* 0: CHS, 1:LBA48 */
 			dma, 	   	/* 0: No DMA, 1: DMA */ 
 			cmd;
@@ -371,7 +371,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 }
 
 uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
-					uint16_t selector, char* offset) {
+					char* buffer) {
 
 	// 1. Check if the drive presents:
 	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
@@ -384,7 +384,7 @@ uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 	else {
 		uint8_t err = 0;
 		if(ide_devices[drive].type == IDE_ATA)
-			err = ide_ata_access(ATA_READ, drive, lba, num_sects, selector, offset);
+			err = ide_ata_access(ATA_READ, drive, lba, num_sects, buffer);
 
         ide_print_error(drive, err);	
 		return err; 
@@ -393,7 +393,7 @@ uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 }
 
 uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
-						uint16_t selector, char * offset) {
+						char * buffer) {
 	// 1. Check if the drive presents:
 	if (drive > 3 || ide_devices[drive].reserved == 0) return 0x1; // Drive not found :(
 	
@@ -405,7 +405,7 @@ uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 	else {
 		uint8_t err = 0;
 		if(ide_devices[drive].type == IDE_ATA)
-			err = ide_ata_access(ATA_WRITE, drive, lba, num_sects, selector, offset);
+			err = ide_ata_access(ATA_WRITE, drive, lba, num_sects, buffer);
 		else if(ide_devices[drive].type == IDE_ATAPI)
 			err = 4; // Write is protected
 		return ide_print_error(drive, err);	
@@ -421,10 +421,10 @@ void ata_test (){
     char* str = "Hello there paulio";
     kstrcpy((char*)bytes, str);
 
-	uint8_t err = ide_write_sectors(0, 1, 512*8, 0, (char*)bytes);
+	uint8_t err = ide_write_sectors(0, 1, 512*8, (char*)bytes);
 	if(err == 0)
 		kprintf("no write errors\n");
-	err = ide_read_sectors(0, 1, 512*8, 0, (char*)read);
+	err = ide_read_sectors(0, 1, 512*8, (char*)read);
 	if(err == 0) {
 		kprintf("no read errors\n");
         kprintf("%s\n", (char*)read);
