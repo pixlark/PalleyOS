@@ -54,10 +54,20 @@ size_t kstrcpy (char* dest, const char* src) {
 // returns the number of chars written
 size_t kmemcpy (void* dest, const void* src, size_t num) {
     size_t num_written = 0;
-	while(num_written < num){
+	while(num--){
         *((uint8_t*)dest) = *((uint8_t*)src);
 		dest++;
 		src++;
+        num_written ++;
 	}
 	return num_written;
+}
+//
+// Sets num bytes to value at dest
+// returns the number of chars written
+void kmemset(void* dest, uint8_t value, size_t num) {
+	while(num--){
+        *((uint8_t*)dest) = value;
+		dest++;
+	}
 }

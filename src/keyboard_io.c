@@ -227,8 +227,6 @@ void init_ps2() {
 	outb(0x60, ccb);
 	io_wait();
 
-	bool dual_channeled = (ccb & (1<<5)) > 0;
-
 	uint8_t test = 0;
 	if((test = send_ps2_command(0xAA, true) != 0x55))
 		kprintf("ERROR: ps2 controller test failed\n");
@@ -254,7 +252,7 @@ void init_ps2() {
 
 
 /* ===== INITIALISE KEYBOARD ===== */
-void init_keyboard() {
+void kbInit() {
 	disable_interrupts();
 
 	init_ps2();
@@ -313,22 +311,23 @@ MappedKey handle_e0_key() {
 	return ret;
 }
 
-MappedKey handle_unknown_key(uint8_t scancode, uint8_t mapped_code, bool being_pressed) {
+static MappedKey handle_unknown_key(uint8_t scancode, uint8_t mapped_code, bool being_pressed) {
 	MappedKey ret = {0};
 	ret.mapped_code = mapped_code;
 	ret.printable = false;
 	ret.down_stroke = being_pressed;
 	ret.scancode = scancode;
 
-	if(mapped_code != CAPS)
+	if(mapped_code != KEY_CAPS)
 		key_states[mapped_code] = being_pressed;
 	else if(being_pressed)
-		key_states[CAPS] = !key_states[CAPS];
+		key_states[KEY_CAPS] = !key_states[KEY_CAPS];
 
 	return ret;
 }
+
 // Returns 0 on non-printable characters 
-MappedKey kb_next_mapped_key() {
+static MappedKey kb_next_mapped_key() {
 	MappedKey ret = {0};
 
 	if(queue_ridx == queue_widx){
@@ -353,8 +352,8 @@ MappedKey kb_next_mapped_key() {
 	key_states[mapped_code] = being_pressed;
 	
 	if(being_pressed) {
-		if(key_states[L_SHIFT] || key_states[R_SHIFT] ||
-		key_states[CAPS])
+		if(key_states[KEY_L_SHIFT] || key_states[KEY_R_SHIFT] ||
+		key_states[KEY_CAPS])
 			ret.capitalized = true;
 		else
 			ret.capitalized = false;
@@ -368,8 +367,71 @@ MappedKey kb_next_mapped_key() {
 	return ret;
 }
 
-char kb_next_char() {
-	if(!keyboard_initialized) init_keyboard();
+void kbGetLine(char* buffer) {
+	if(!keyboard_initialized) kbInit();
+    MappedKey key = {0};
+    int index = 0;
+    int size = 1;
+    while(!key.down_stroke || key.mapped_code != KEY_ENTER) {
+        if(queue_ridx != queue_widx) {
+            disable_interrupts();
+            key = kb_next_mapped_key();
+            enable_interrupts();	
+        } else continue;
+
+        if(key.down_stroke == false) continue;
+    
+        if(!key.printable){ // Handle cursor movements
+
+            if(key.mapped_code == KEY_ARROW_LEFT) {
+                index --;
+                if(index < 0) index = 0;
+                tio_dec_cursor();
+            }else if(key.mapped_code == KEY_ARROW_RIGHT) {
+                index ++;
+                tio_inc_cursor();
+                if(index > size-1) index = size-1;
+            }else if(key.mapped_code == KEY_BACKSPACE) {
+                tio_shift_left();
+                if(index != size-1){
+                    for(int i = index-1; i < size-1; i++)
+                        buffer[i] = buffer[i+1];
+                }
+
+                index --; size--;
+                if(index < 0) index = 0;
+                if(size < 1) size = 1;
+
+                buffer[size-1] = 0;
+                tio_backspace();
+            }
+
+        } else {
+            // If we are not at the end, shift everything over
+            if(index != size-1) {
+                for(int i = size; i > index; i--)
+                    buffer[i] = buffer[i-1];
+                tio_shift_right();
+            }
+
+            char ret;
+            if(key.capitalized) ret = uppercase_scancode_set1[key.scancode]; 
+            else ret = scancode_set1[key.scancode];
+            buffer[index] = ret;
+
+            kprintf("%c", ret);
+
+            index++;
+            size++;
+            buffer[size-1] = 0;
+        }
+    }
+
+    tio_inc_cursor(size - index);
+}
+
+char kbGetChar() {
+	if(!keyboard_initialized) kbInit();
 	MappedKey key = {0};
 	while(key.printable == false || key.down_stroke == false) {
 		if(queue_ridx != queue_widx) {
@@ -381,7 +443,7 @@ char kb_next_char() {
 
 	char ret;
 	if(key.capitalized) ret = uppercase_scancode_set1[key.scancode]; 
-	else ret = scancode_set1[key.scancode];
+    else ret = scancode_set1[key.scancode];
 
 	return ret;
 }

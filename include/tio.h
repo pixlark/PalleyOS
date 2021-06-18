@@ -46,7 +46,12 @@ void term_write_int32(int32_t l, unsigned int base);
 void term_write_uint32(uint32_t ul, unsigned int base);
 
 void tio_shift_term_line(int n);
-void tio_dec_cursor();
 
+void tio_inc_cursor();
+void tio_dec_cursor();
+void tio_backspace();
+
+void tio_shift_right();
+void tio_shift_left();
 
 #endif

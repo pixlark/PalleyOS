@@ -21,7 +21,7 @@ OBJS=$(OBJ_DIR)/boot.o \
 	$(OBJ_DIR)/fadt.o \
 	$(OBJ_DIR)/ata.o \
 	$(OBJ_DIR)/ata_helper.o \
-	$(OBJ_DIR)/k_term_proc.o \
+	$(OBJ_DIR)/kshell.o \
 	$(OBJ_DIR)/cpuid.o \
 	$(OBJ_DIR)/cpuid_fetch.o \
 	$(OBJ_DIR)/keyboard_io.o \

@@ -4,16 +4,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define L_SHIFT		0x80
-#define R_SHIFT		0x8B
-#define CAPS		0x60
-#define BACKSPACE   0x2D
-#define ENTER		0x6c
+#define KEY_L_SHIFT		0x80
+#define KEY_R_SHIFT		0x8B
+#define KEY_CAPS		0x60
+#define KEY_BACKSPACE   0x2D
+#define KEY_ENTER		0x6c
 
-#define ARROW_UP	0x8c
-#define ARROW_LEFT  0xa8	
-#define ARROW_RIGHT 0xaa	
-#define ARROW_DOWN	0xa9
+#define KEY_ARROW_UP	0x8c
+#define KEY_ARROW_LEFT  0xa8	
+#define KEY_ARROW_RIGHT 0xaa	
+#define KEY_ARROW_DOWN	0xa9
 
 #define PAGE_UP		0x30
 #define PAGE_DOWN	0x50
@@ -33,11 +33,12 @@ struct mapped_key {
 
 typedef struct mapped_key MappedKey;
 
-void init_keyboard(void);
+void kbInit(void);
 void keyboard_interrupt_handler(void);
-void setup_keyboard(void);
+void kbSetupKeyboard(void);
 void handle_scancode_queue(void);
-struct mapped_key kb_next_mapped_key(void);
-char kb_next_char();
+
 bool kb_has_new_input();
 
+void kbGetLine(char* buffer);
+char kbGetChar();

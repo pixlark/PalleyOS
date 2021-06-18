@@ -11,7 +11,7 @@
 #include <pic.h>
 #include <ata.h>
 #include <io.h>
-#include <terminal_proc.h>
+#include <kshell.h>
 #include <memory.h>
 #include <idt.h>
 #include <kheap.h>
@@ -59,5 +59,5 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 
 	pci_check_all_buses();
     
-	terminal_proc_start();
+	kShellStart();
 }

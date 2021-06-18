@@ -23,3 +23,7 @@ size_t kmemcpy(void* dest, const void* src, size_t num);
 // Copies chars from src to destination until a null character is hit
 // returns the number of chars written
 size_t kstrcpy(char* dest, const char* src);
+
+// Sets num bytes to value at dest
+// returns the number of chars written
+void kmemset(void* dest, uint8_t value, size_t num);

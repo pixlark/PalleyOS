@@ -38,7 +38,7 @@ static void fix_screen_pos() {
 	}
 }
 
-static void inc_cursor() {
+void tio_inc_cursor() {
 	term_col++;
 	if(term_col >= TERM_WIDTH) {
 		term_row++;
@@ -46,6 +46,7 @@ static void inc_cursor() {
 	}
 
 	if(term_row >= TERM_HEIGHT-1) tio_shift_term_line(1);
+	update_cursor(term_col, term_row);
 }
 
 void tio_dec_cursor() {
@@ -57,11 +58,26 @@ void tio_dec_cursor() {
 	}
 	if(term_row < 0) term_row = 0;
 
-	int index = term_row*TERM_WIDTH + term_col;
-	vb[index] = ' ' | VGA_COLOR_BLACK; 
-	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
+	update_cursor(term_col, term_row);
+}
 
-	update_cursor(term_col+1, term_row);
+void tio_backspace() {
+    tio_dec_cursor();
+
+	int index = term_row*TERM_WIDTH + term_col;
+	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
+}
+
+void tio_shift_right() {
+    for(size_t i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
+       vb[i] = vb[i-1]; 
+}
+
+void tio_shift_left() {
+    size_t vb_index = (term_row*TERM_WIDTH + term_col) - 1;
+    if(term_col == 0) vb_index += 1;
+    for(size_t i = vb_index; i < VB_SIZE; i++) 
+       vb[i] = vb[i+1]; 
 }
 
 inline void term_write_char(char c) {
@@ -85,7 +101,7 @@ void term_write_char_color(char c, vga_color vc){
 	int index = term_row*TERM_WIDTH + term_col;
 	vb[index] = vga_entry(c, vc);
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
-	inc_cursor();
+	tio_inc_cursor();
 	update_cursor(term_col, term_row);
 }
 
