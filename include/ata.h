@@ -142,3 +142,5 @@ struct ide_device {
 
 void ata_test();
 void ide_initialize(uint32_t BAR0,uint32_t BAR1,uint32_t BAR2,uint32_t BAR3,uint32_t BAR4);
+uint8_t ide_write_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
+uint8_t ide_read_sectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
