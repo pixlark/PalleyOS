@@ -339,6 +339,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
 			//kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
             for(size_t j = 0; j < words*2; j+=2) {
                 uint16_t tmp = inw(bus);
+
                 buffer[j] = (tmp & 0xff00) >> 8;
                 buffer[j+1] = tmp & 0xff;
             }
@@ -352,6 +353,7 @@ uint8_t ide_ata_access(uint8_t dir, uint8_t drive, uint32_t lba,
             for(size_t j = 0; j < words*2; j+=2) {
                 uint16_t tmp = ((uint16_t)buffer[j] <<8);
                 tmp |= (uint16_t)buffer[j+1] & 0xff;
+
                 outw(bus, tmp);
             }
 			//ata_write_to_port(bus, buffer, words);

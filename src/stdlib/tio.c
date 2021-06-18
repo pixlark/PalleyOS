@@ -71,6 +71,7 @@ void tio_backspace() {
 void tio_shift_right() {
     for(size_t i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
        vb[i] = vb[i-1]; 
+    vb[(term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
 }
 
 void tio_shift_left() {
