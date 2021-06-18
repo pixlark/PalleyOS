@@ -1,0 +1,28 @@
+NAME: SknyFS
+ Succinct,
+ Kinetic,
+ New York
+ File System
+
+needs:
+ - track allocated chunks
+ - track files: name, chunks
+ - store files
+
+CHUNK SIZE: 16 KiB
+
+16 chunk bitmap
+
+file metadata:
+ - name (252 bytes) (251 max, null terminator)
+ - location of first chunk (4 bytes)
+
+chunk:
+ - chunk type (1 bytes)
+   - full, location is next (4 bytes)
+   - not full, amount of space taken is next (4 bytes)
+
+Modes (dealt with automatically):
+  LBA48: 32 bits (a bunch of GiB)
+  LBA28: 28 bits (128 GiB)
+  CHS (obsolete)
