@@ -2,19 +2,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <timer.h>
-#include <gdt.h>
+#include <ata.h>
 #include <cpuid.h>
+#include <gdt.h>
+#include <idt.h>
+#include <io.h>
+#include <kheap.h>
 #include <kstdio.h>
 #include <kstdlib.h>
+#include <memory.h>
 #include <pci.h>
 #include <pic.h>
-#include <ata.h>
-#include <io.h>
+#include <sknyfs.h>
 #include <terminal_proc.h>
-#include <memory.h>
-#include <idt.h>
-#include <kheap.h>
+#include <timer.h>
 #include <timer.h>
 
 #if defined(__linux__)
@@ -58,6 +59,22 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 	print_cpuid_vendor();
 
 	pci_check_all_buses();
-    
+
+    // Ensure there's a hard drive loaded
+    if (!ide_devices[0].reserved) {
+        kprintf("No hard drive loaded!\n");
+        while (true);
+    }
+    if (ide_devices[0].type != 0) {
+        kprintf("Hard drive is not ATA type!\n");
+        while (true);
+    }
+
+    {
+        uint8_t drive = 0;
+        SknyHandle handle;
+        createFilesystem(&handle, drive);
+    }
+
 	terminal_proc_start();
 }

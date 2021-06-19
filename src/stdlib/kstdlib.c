@@ -3,6 +3,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+size_t kstrlen(const char* str) {
+    size_t counter = 0;
+    while (*str != '\0') {
+        counter++;
+        str++;
+    }
+    return counter;
+}
 
 // Compares the c strings str2 and str2
 // Continues comparison while the characters in comparison are equal,

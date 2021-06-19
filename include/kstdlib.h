@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+size_t kstrlen(const char* str);
+
 // Compares the c strings str2 and str2
 // Continues comparison while the characters in comparison are equal,
 // or a null byte is encountered

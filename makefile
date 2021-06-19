@@ -11,28 +11,30 @@ STD_LIB_DIR=stdlib
 TIMER_DIR=timer
 
 OBJ_DIR=obj
-OBJS=$(OBJ_DIR)/boot.o \
-	$(OBJ_DIR)/kernel.o \
-	$(OBJ_DIR)/idt.o \
-	$(OBJ_DIR)/isr.o \
-	$(OBJ_DIR)/gdt.o \
-	$(OBJ_DIR)/pci.o \
-	$(OBJ_DIR)/pic.o \
-	$(OBJ_DIR)/fadt.o \
-	$(OBJ_DIR)/ata.o \
-	$(OBJ_DIR)/ata_helper.o \
-	$(OBJ_DIR)/k_term_proc.o \
-	$(OBJ_DIR)/cpuid.o \
-	$(OBJ_DIR)/cpuid_fetch.o \
-	$(OBJ_DIR)/keyboard_io.o \
-	$(OBJ_DIR)/memory.o \
-	$(OBJ_DIR)/$(TIMER_DIR)/timer.o \
-	$(OBJ_DIR)/$(TIMER_DIR)/sleep.o \
-	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kheap.o \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdlib.o 
+OBJS= \
+	$(OBJ_DIR)/ata.o                     \
+	$(OBJ_DIR)/ata_helper.o              \
+	$(OBJ_DIR)/boot.o                    \
+	$(OBJ_DIR)/cpuid.o                   \
+	$(OBJ_DIR)/cpuid_fetch.o             \
+	$(OBJ_DIR)/fadt.o                    \
+	$(OBJ_DIR)/gdt.o                     \
+	$(OBJ_DIR)/idt.o                     \
+	$(OBJ_DIR)/isr.o                     \
+	$(OBJ_DIR)/k_term_proc.o             \
+	$(OBJ_DIR)/kernel.o                  \
+	$(OBJ_DIR)/keyboard_io.o             \
+	$(OBJ_DIR)/memory.o                  \
+	$(OBJ_DIR)/pci.o                     \
+	$(OBJ_DIR)/pic.o                     \
+	$(OBJ_DIR)/sknyfs.o                  \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kheap.o    \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o   \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdlib.o  \
+	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o      \
+	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o        \
+	$(OBJ_DIR)/$(TIMER_DIR)/sleep.o      \
+	$(OBJ_DIR)/$(TIMER_DIR)/timer.o
 
 all: $(BUILD_DIR)/palleyos.iso
 
@@ -102,7 +104,7 @@ run-bin: $(BUILD_DIR)/palleyos.iso
 run-server: $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-m 256M \
-		-cdrom $(BUILD_DIR)/palleyos.iso
+		-cdrom $(BUILD_DIR)/palleyos.iso \
 		-drive format=raw,file=./palleyos.img \
 		-s -S
 

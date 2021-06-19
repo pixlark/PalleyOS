@@ -5,9 +5,9 @@
 
 ********** Kernel **********
 [X] Enable paging (A/P)
-	[ ] Test Page Faults (P)
+	[X] Test Page Faults (P)
 
-[ ] Agree upon a general memory map (A/P)
+[X] Agree upon a general memory map (A/P)
 	- What is non-user-accessible (i.e. kernel code an data)
 	- Where does stack begin, how big
 	- Heap?
@@ -24,7 +24,7 @@
 
 [X] Standard library
    [X] printf (P)
-   [ ] heap allocator (P)
+   [X] heap allocator (P)
 
 [X] Terminal output for the kernel (A)
 	- Update to use a double buffer so that we don't have to stop for interrupts
@@ -32,8 +32,8 @@
 [X] Keyboard input (A)
 	- Add support for other scan sets?
 
-[ ] File I/O (A)
-	[ ] Saving and loading to Disk (A)
+[X] File I/O (A)
+	[X] Saving and loading to Disk (A)
 
 [X] Timer Interaction 
 	[X] Sleep
@@ -53,3 +53,7 @@
 	- Send Messages between processes
 
 [ ] USB Drivers
+
+[ ] Go through and change all functions to camelCase
+
+[ ] Move stack to its own region of memory! Right now it's tiny and in a bad place

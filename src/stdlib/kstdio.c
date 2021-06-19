@@ -2,10 +2,22 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <limits.h>
 
+#include <kstdlib.h>
 #include <tio.h>
 
 static void render_integer(char* result, uint32_t* result_i, int32_t to_render) {
+    // Special case for problematic number: -2**31
+    // Probably a better way to do this but fuck it
+    // TODO(Paul): make this not stupid
+    if (to_render == INT_MIN) {
+        const char* rendered = "-2147483648";
+        kstrcpy(result + *result_i, rendered);
+        *result_i += kstrlen(rendered);
+        return;
+    }
+    
     if (to_render < 0) {
         result[*result_i] = '-';
         *result_i += 1;
