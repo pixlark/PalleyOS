@@ -38,7 +38,7 @@ static void fix_screen_pos() {
 	}
 }
 
-void tio_inc_cursor() {
+void tioIncCursor() {
 	term_col++;
 	if(term_col >= TERM_WIDTH) {
 		term_row++;
@@ -49,7 +49,7 @@ void tio_inc_cursor() {
 	update_cursor(term_col, term_row);
 }
 
-void tio_dec_cursor() {
+void tioDecCursor() {
 	fix_screen_pos();
 	term_col--;
 	if(term_col < 0){
@@ -62,7 +62,7 @@ void tio_dec_cursor() {
 }
 
 void tio_backspace() {
-    tio_dec_cursor();
+    tioDecCursor();
 
 	int index = term_row*TERM_WIDTH + term_col;
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
@@ -111,7 +111,7 @@ void term_write_char_color(char c, vga_color vc){
 	int index = term_row*TERM_WIDTH + term_col;
 	vb[index] = vga_entry(c, vc);
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
-	tio_inc_cursor();
+	tioIncCursor();
 	update_cursor(term_col, term_row);
 }
 
@@ -128,7 +128,7 @@ void term_write_color(char* string, vga_color vc) {
 
 }
 
-void tio_enable_cursor()
+void tioEnableCursor()
 {
 	outb(0x3D4, 0x0A);
 	outb(0x3D5, (inb(0x3D5) & 0xC0) | 0);
@@ -187,10 +187,10 @@ void tio_shift_term_line(int n) {
 }
 
 static void write_screen_from_pvb(){
-	disable_interrupts();
+	cli();
 	int pvb_offset = pvb_row*TERM_WIDTH;
 	for(int i = 0; i < VB_SIZE; i++)
 	   	vb[i] = pvb[pvb_offset+i];
-	enable_interrupts();
+	sti();
 }
 

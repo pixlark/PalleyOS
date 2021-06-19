@@ -34,11 +34,11 @@ struct mapped_key {
 typedef struct mapped_key MappedKey;
 
 void kbInit(void);
-void keyboard_interrupt_handler(void);
+void keyboardInterruptHandler(void);
 void kbSetupKeyboard(void);
 void handle_scancode_queue(void);
 
-bool kb_has_new_input();
+bool kbHasNewInput();
 
 void kbGetLine(char* buffer);
 char kbGetChar();

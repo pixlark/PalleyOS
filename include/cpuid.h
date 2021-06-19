@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void print_cpuid_vendor();
-void load_cpuid();
-void load_cpuid_features(intptr_t, intptr_t);
+void cpuidPrintVendor();
+void loadCpuid();
+void cpuidLoadFeatures(intptr_t, intptr_t);
 
 #endif

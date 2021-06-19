@@ -24,5 +24,5 @@ typedef struct {
     // plus a buch more fields that we're not using...
 } __attribute__((packed)) MultibootInfo;
 
-void load_physical_memory_region_descriptors(MultibootInfo* multiboot_info);
-void setup_paging();
+void loadPhysicalMemoryRegionDescriptors(MultibootInfo* multiboot_info);
+void setupPaging();

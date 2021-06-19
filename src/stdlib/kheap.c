@@ -19,7 +19,7 @@ typedef struct HeapNode {
 
 static HeapNode* root_node;
 
-void initialize_kheap() {
+void kheapInit() {
     kprintf("sizeof(HeapNode): %d\n", sizeof(HeapNode));
     root_node = (HeapNode*) KHEAP_START;
     root_node->magic_number = KHEAP_MAGIC;

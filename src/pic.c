@@ -10,7 +10,7 @@
 #include <io.h>
 
 /* Helper func */
-static uint16_t __pic_get_irq_reg(int ocw3)
+static uint16_t picGetIrqReg(int ocw3)
 {
     /* OCW3 to PIC CMD to get the register values.  PIC2 is chained, and
      * represents IRQs 8-15.  PIC1 is IRQs 0-7, with 2 being the chain */
@@ -20,13 +20,13 @@ static uint16_t __pic_get_irq_reg(int ocw3)
 }
  
 /* Returns the combined value of the cascaded PICs irq request register */
-uint16_t pic_get_irr(void)
+uint16_t picGetIrr(void)
 {
-    return __pic_get_irq_reg(PIC_READ_IRR);
+    return picGetIrqReg(PIC_READ_IRR);
 }
 
 /* Returns the combined value of the cascaded PICs in-service register */
-uint16_t pic_get_isr(void)
+uint16_t picGetIsr(void)
 {
-    return __pic_get_irq_reg(PIC_READ_ISR);
+    return picGetIrqReg(PIC_READ_ISR);
 }
