@@ -32,7 +32,7 @@
 [X] Keyboard input (A)
 	- Add support for other scan sets?
 
-[ ] File I/O (A)
+[X] File I/O (A)
 	[ ] Saving and loading to Disk (A)
 
 [X] Timer Interaction 
@@ -53,3 +53,4 @@
 	- Send Messages between processes
 
 [ ] USB Drivers
+

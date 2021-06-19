@@ -149,7 +149,7 @@ static void printBar(PCIDevice pd, uint32_t bar, uint8_t bar_num, char* padding)
 		kprintf("%sAmt. Mem. Needed: 0x%x\n", padding, amt_mem);
 }
 
-static void print_device(PCIDevice pd, char* padding){
+static void printDevice(PCIDevice pd, char* padding){
 	kprintf("%sVendorID:      0x%x\n", padding, pd.vendor_id);
 	kprintf("%s  DeviceID:    0x%x\n", padding, pd.device_id);
 	kprintf("%s  ProgIF:      0x%x\n", padding, pd.prog_if);
@@ -206,9 +206,9 @@ void pciCheckDevice(uint8_t bus, uint8_t device) {
 			if(tmp_pd.vendor_id != 0xffff){ 
 //				kprintf("    Function %d:\n", function);
 				pciCheckFunction(bus, device, function);
-//				print_device(tmp_pd, "    ");
+//				printDevice(tmp_pd, "    ");
 
-				if(tmp_pd.class_code == 0x01 & tmp_pd.sub_class == 0x01)
+				if(tmp_pd.class_code == 0x01 && tmp_pd.sub_class == 0x01)
 					handleDistController(pd);
 
 #if DEBUG

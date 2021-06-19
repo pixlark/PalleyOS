@@ -1,6 +1,4 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
 /*
    Enumerating the PCI, we find IDE Controllers or ATA Controllers.
    We know they are the correct type of controllers because the
@@ -121,6 +119,9 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 #define      ATA_READ      0x00
 #define      ATA_WRITE     0x01
 
+#include <stddef.h>
+#include <stdint.h>
+
 struct IDEChannelRegisters {
 	uint16_t base; 			// I/O Base	
 	uint16_t ctrl;		    // Control Base	
@@ -128,7 +129,9 @@ struct IDEChannelRegisters {
 	uint8_t  no_interrupt;	
 };
 
-struct ide_device {
+typedef struct IDEChannelRegisters IDEChannelRegisters;
+
+struct IDEDevice {
 	uint8_t reserved;			// 0 (Empty) or 1 (This Drive Really Exists)
 	uint8_t channel;			// 0 (Primary Channel) or 1 (Secondary Channel)
 	uint8_t drive;				// 0 (Master Drive) or 1 (Slave Drive)
@@ -140,7 +143,10 @@ struct ide_device {
 	unsigned char model[41]; 	// Model string
 };
 
+typedef struct ide_device IDEDevice;
+
 void ata_test();
 void ide_initialize(uint32_t BAR0,uint32_t BAR1,uint32_t BAR2,uint32_t BAR3,uint32_t BAR4);
 uint8_t ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
 uint8_t ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
+

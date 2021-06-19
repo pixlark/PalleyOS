@@ -35,23 +35,23 @@ typedef enum {
 
 void tioEnableCursor();
 
-void term_write_char(char c);
-void term_write_char_color(char c, vga_color vc);
+void tioWriteChar(char c);
+void tioWriteCharColor(char c, vga_color vc);
 
-void term_write(char* string);
-void term_write_color(char* string, vga_color vc);
+void tioWrite(char* string);
+void tioWriteColor(char* string, vga_color vc);
 
 void termWriteInt(int n, unsigned int base);
 void termWriteInt32(int32_t l, unsigned int base);
-void term_write_uint32(uint32_t ul, unsigned int base);
+void tioWrite_uint32(uint32_t ul, unsigned int base);
 
-void tio_shift_term_line(int n);
+void tioShiftTermLine(int n);
 
 void tioIncCursor();
 void tioDecCursor();
-void tio_backspace();
+void tioBackspace();
 
-void tio_shift_right();
-void tio_shift_left();
+void tioShiftRight();
+void tioShiftLeft();
 
 #endif

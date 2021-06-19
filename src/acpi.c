@@ -41,10 +41,8 @@
 #include <kstdlib.h>
 #include <kstdio.h>
 
-static struct RSDPDescriptor* rsdp = NULL;
-static struct RSDT* rsdt = NULL;
 
-bool acpiEvalHeaderChecksum(struct ACPISDTHeader* header) {
+bool acpiEvalHeaderChecksum(ACPISDTHeader* header) {
 	unsigned char sum = 0;
 
 	for(uint32_t i = 0; i < header->length; i++)
@@ -54,13 +52,12 @@ bool acpiEvalHeaderChecksum(struct ACPISDTHeader* header) {
 }
 
 void acpiTesting() {
-	struct RSDPDescriptor* rsdp = getRSDP();	
+	RSDPDescriptor* rsdp = getRSDP();	
 	if(rsdp == NULL){
 		kprintf("Unable to locate RSDP :(\n");
 		return;
 	}
 
-	struct RSDT* rsdt = (struct RSDT*)rsdp->rsdt_address;
-	
+//	struct RSDT* rsdt = (struct RSDT*)rsdp->rsdt_address;
 }
 

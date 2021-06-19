@@ -1,3 +1,7 @@
+/*
+ * The Global Descriptor Table (GDT) is specific to the IA32 Architecture. It contains entries which tell the CPU
+ * about memory segments
+ */
 #include <stddef.h>
 #include <stdint.h>
 
@@ -13,15 +17,20 @@ struct GDTEntry {
    uint8_t  base_high;
 } __attribute__((packed));
 
-struct gdt_ptr {
+typedef struct GDTEntry GDTEntry;
+
+struct GDTPtr {
 	uint16_t limit;
 	uint32_t base;
 }__attribute__((packed));
 
+typedef struct GDTPtr GDTPtr;
+
 extern void gdtFlush();
 struct GDTEntry GDT[3];
-struct gdt_ptr gp;
+GDTPtr gp;
 
+// Sets an entry in the GDT
 void gdtSetGate(int num, uint32_t base, uint32_t limit,
 						   uint8_t access, uint8_t gran) {
 	/* Set up descriptor base address */
@@ -40,10 +49,9 @@ void gdtSetGate(int num, uint32_t base, uint32_t limit,
 
 
 void gdtInit() {
-	// Sets flat segments that span all of memory
 	// TODO: Change so half of memory is for kernel, other half for user
 
-	/* NULL Descriptor */
+    // The first entry must be NULL
 	gdtSetGate(0, 0, 0, 0, 0);
 
 	/* Base Adress: 0
@@ -62,7 +70,7 @@ void gdtInit() {
 	kprintf("GDT loc: 0x%x\n", &GDT);
 
 	gp.limit = (sizeof(struct GDTEntry) * 3) - 1;
-	gp.base = (uint32_t)&GDT;
+	gp.base = (uintptr_t)&GDT;
 	
 	/* Flush out the old GDT and install the new changes */
 	gdtFlush();

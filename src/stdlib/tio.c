@@ -9,32 +9,32 @@
 #include <io.h>
 #include <tio.h>
 
-uint16_t* vb = (uint16_t*) 0xB8000;
+static uint16_t* vb = (uint16_t*) 0xB8000;
 
-int term_row = 0;
-int term_col = 0;
+static int term_row = 0;
+static int term_col = 0;
 
 static uint16_t pvb[PVB_SIZE] = {' ' | VGA_COLOR_BLACK << 8};
 static int pvb_row = PVB_NUM_ROWS / 2; 
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
+static void writeScreenFromPVB();
+static void tioUpdateCursor(int x, int y);
+
+static inline uint16_t vgaEntry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-static void write_screen_from_pvb();
-static void update_cursor(int x, int y);
-
-/* TODO: This should be called whenever tryiing to write
+/* TODO: This should be called whenever trying to write
  * at term_row, term_col. The screen could be shifted.
  * If that is the case, this will shift the screen so 
  * the user can see where they are typing
  */
-static void fix_screen_pos() {
+static void tioFixScreenPos() {
 	int num_shifts = term_row - TERM_HEIGHT;
 	
-	if(num_shifts > 0) tio_shift_term_line(num_shifts);
+	if(num_shifts > 0) tioShiftTermLine(num_shifts);
 	else if(num_shifts	< -TERM_HEIGHT) {
-		tio_shift_term_line(term_row-TERM_HEIGHT/2);
+		tioShiftTermLine(term_row-TERM_HEIGHT/2);
 	}
 }
 
@@ -45,12 +45,12 @@ void tioIncCursor() {
 		term_col = 0;
 	}
 
-	if(term_row >= TERM_HEIGHT-1) tio_shift_term_line(1);
-	update_cursor(term_col, term_row);
+	if(term_row >= TERM_HEIGHT-1) tioShiftTermLine(1);
+	tioUpdateCursor(term_col, term_row);
 }
 
 void tioDecCursor() {
-	fix_screen_pos();
+	tioFixScreenPos();
 	term_col--;
 	if(term_col < 0){
 		term_row--;
@@ -58,26 +58,30 @@ void tioDecCursor() {
 	}
 	if(term_row < 0) term_row = 0;
 
-	update_cursor(term_col, term_row);
+	tioUpdateCursor(term_col, term_row);
 }
 
-void tio_backspace() {
+void tioBackspace() {
     tioDecCursor();
 
 	int index = term_row*TERM_WIDTH + term_col;
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
 }
 
-void tio_shift_right() {
-    for(size_t i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
+// Shfits all characters visible to the right from the cursor and replaces
+// it with a blank
+void tioShiftRight() {
+    for(int i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
        vb[i] = vb[i-1]; 
-	for(size_t j = pvb_row*TERM_WIDTH+VB_SIZE-1; j > (pvb_row*TERM_WIDTH + term_row*TERM_WIDTH) + term_col; j--)
+	for(int j = pvb_row*TERM_WIDTH+VB_SIZE-1; j > (pvb_row*TERM_WIDTH + term_row*TERM_WIDTH) + term_col; j--)
 		pvb[j] = pvb[j-1];
     vb[(term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
     pvb[(pvb_row*TERM_WIDTH) + (term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
 }
 
-void tio_shift_left() {
+// Shfits all characters visible to the left from the cursor and replaces
+// it with a blank
+void tioShiftLeft() {
     size_t vb_index = (term_row*TERM_WIDTH + term_col) - 1;
     if(term_col == 0) vb_index += 1;
     for(size_t i = vb_index; i < VB_SIZE; i++) 
@@ -87,21 +91,21 @@ void tio_shift_left() {
     if(term_col == 0) pvb_index += 1;
 	for(size_t j = pvb_index; j < (size_t)(pvb_row*TERM_WIDTH + VB_SIZE); j++)
 		pvb[j] = pvb[j+1];
-	write_screen_from_pvb();
+	writeScreenFromPVB();
 }
 
-inline void term_write_char(char c) {
-	term_write_char_color(c, VGA_COLOR_WHITE);
+inline void tioWriteChar(char c) {
+	tioWriteCharColor(c, VGA_COLOR_WHITE);
 }
 
-void term_write_char_color(char c, vga_color vc){
-	fix_screen_pos();
+void tioWriteCharColor(char c, vga_color vc){
+	tioFixScreenPos();
 
 	if(c == '\n') {
 		term_row ++;
 		term_col = 0;
 		if(term_row >= TERM_HEIGHT-1)
-			tio_shift_term_line(1);
+			tioShiftTermLine(1);
 		return;
 	}else if(c == '\r'){
 		term_col = 0;
@@ -109,20 +113,20 @@ void term_write_char_color(char c, vga_color vc){
 	}
 
 	int index = term_row*TERM_WIDTH + term_col;
-	vb[index] = vga_entry(c, vc);
+	vb[index] = vgaEntry(c, vc);
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
 	tioIncCursor();
-	update_cursor(term_col, term_row);
+	tioUpdateCursor(term_col, term_row);
 }
 
-void term_write(char* string) {
-   	term_write_color(string, VGA_COLOR_WHITE); 
+void tioWrite(char* string) {
+   	tioWriteColor(string, VGA_COLOR_WHITE); 
 }
-void term_write_color(char* string, vga_color vc) {
+void tioWriteColor(char* string, vga_color vc) {
 
 	char* c = string;
 	while(*c != '\0') {
-		term_write_char_color(*c, vc);
+		tioWriteCharColor(*c, vc);
 		c++;
 	}
 
@@ -137,7 +141,7 @@ void tioEnableCursor()
 	outb(0x3D5, (inb(0x3D5) & 0xE0) | 15);
 }
 
-static void update_cursor(int x, int y)
+static void tioUpdateCursor(int x, int y)
 {
 	int16_t pos = y * TERM_WIDTH + x;
 	if(pos >= VB_SIZE) return;
@@ -148,7 +152,7 @@ static void update_cursor(int x, int y)
 	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
-static void shift_pvb_to_halfway() {
+static void shiftPVBToHalfway() {
 	
 	int shift_dist = pvb_row - (PVB_NUM_ROWS/2);
 	if(shift_dist < 0) return; // Shifting down not implemented
@@ -167,7 +171,7 @@ static void shift_pvb_to_halfway() {
 	pvb_row = PVB_NUM_ROWS/2;
 }
 
-void tio_shift_term_line(int n) {
+void tioShiftTermLine(int n) {
 	int desired_pvb_row = pvb_row + n;
 
 	// If we hit top, no more scrolling, just print the screen
@@ -175,7 +179,7 @@ void tio_shift_term_line(int n) {
 		pvb_row = 0;
 	}
 	else if(pvb_row > PVB_NUM_ROWS-1){
-		shift_pvb_to_halfway();
+		shiftPVBToHalfway();
 		term_row = 0;
 	}
 	else{
@@ -183,10 +187,10 @@ void tio_shift_term_line(int n) {
 		term_row -= n;
 	}
 
-	write_screen_from_pvb();
+	writeScreenFromPVB();
 }
 
-static void write_screen_from_pvb(){
+static void writeScreenFromPVB(){
 	cli();
 	int pvb_offset = pvb_row*TERM_WIDTH;
 	for(int i = 0; i < VB_SIZE; i++)

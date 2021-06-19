@@ -392,12 +392,12 @@ void kbGetLine(char* buffer) {
                 tioIncCursor();
                 if(index > size-1) index = size-1;
             }else if(key.mapped_code == KEY_ARROW_UP) {
-				tio_shift_term_line(1);
+				tioShiftTermLine(1);
 			}else if(key.mapped_code == KEY_ARROW_DOWN) {
-				tio_shift_term_line(-1);
+				tioShiftTermLine(-1);
 			}else if(key.mapped_code == KEY_BACKSPACE) {
 				if(index <= 0) continue;
-                tio_shift_left();
+                tioShiftLeft();
                 if(index != size-1){
                     for(int i = index-1; i < size-1; i++)
                         buffer[i] = buffer[i+1];
@@ -408,7 +408,7 @@ void kbGetLine(char* buffer) {
                 if(size < 1) size = 1;
 
                 buffer[size-1] = 0;
-                tio_backspace();
+                tioBackspace();
             }
 
         } else {
@@ -416,7 +416,7 @@ void kbGetLine(char* buffer) {
             if(index != size-1) {
                 for(int i = size; i > index; i--)
                     buffer[i] = buffer[i-1];
-                tio_shift_right();
+                tioShiftRight();
             }
 
             char ret;

@@ -192,15 +192,15 @@ void generalProtFaultHandler(uint32_t err) {
 }
 
 // Page Fault (14)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 extern void pageFaultIsr();
 extern void handle_page_fault();
-// Stack
-// err
-// iret = the place where we messed up
 void pageFaultHandler(uint32_t err) {
     // TODO(Paul): Check error code for error type
     handle_page_fault();
 }
+#pragma GCC diagnostic push
 
 // x87 Floating-Point Exception (Fault) (16)
 extern void fpeIsr();

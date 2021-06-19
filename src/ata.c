@@ -15,7 +15,7 @@
 unsigned char ide_buf[2048] = {0};
 static uint8_t ide_irq_invoked = 0;
 static uint8_t atapi_packet[12] = {0xA8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-struct ide_device ide_devices[4];
+struct IDEDevice ide_devices[4];
 struct IDEChannelRegisters channels[2];
 
 
