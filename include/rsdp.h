@@ -1,5 +1,5 @@
 #pragma once
-#include <apci.h>
+#include <acpi.h>
 
 
 // Searches through main BIOS memory ( < 1 MiB )

@@ -36,6 +36,10 @@
 
 #include <acpi.h>
 #include <rsdp.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <kstdlib.h>
+#include <kstdio.h>
 
 static struct RSDPDescriptor* rsdp = NULL;
 static struct RSDT* rsdt = NULL;

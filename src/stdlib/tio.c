@@ -11,8 +11,8 @@
 
 uint16_t* vb = (uint16_t*) 0xB8000;
 
-size_t term_row = 0;
-size_t term_col = 0;
+int term_row = 0;
+int term_col = 0;
 
 static uint16_t pvb[PVB_SIZE] = {' ' | VGA_COLOR_BLACK << 8};
 static int pvb_row = PVB_NUM_ROWS / 2; 
@@ -71,7 +71,7 @@ void tio_backspace() {
 void tio_shift_right() {
     for(size_t i = VB_SIZE-1; i > (term_row*TERM_WIDTH + term_col); i--) 
        vb[i] = vb[i-1]; 
-	for(size_t j = pvb_row*TERM_WIDTH+VB_SIZE-1; j > pvb_row*TERM_WIDTH + term_col; j--)
+	for(size_t j = pvb_row*TERM_WIDTH+VB_SIZE-1; j > (pvb_row*TERM_WIDTH + term_row*TERM_WIDTH) + term_col; j--)
 		pvb[j] = pvb[j-1];
     vb[(term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
     pvb[(pvb_row*TERM_WIDTH) + (term_row*TERM_WIDTH) + term_col] = ' ' | VGA_COLOR_BLACK << 8;
@@ -85,7 +85,7 @@ void tio_shift_left() {
 
 	size_t pvb_index = (pvb_row*TERM_WIDTH + +term_row*TERM_WIDTH + term_col) - 1;
     if(term_col == 0) pvb_index += 1;
-	for(size_t j = pvb_index; j < pvb_row*TERM_WIDTH + VB_SIZE; j++)
+	for(size_t j = pvb_index; j < (size_t)(pvb_row*TERM_WIDTH + VB_SIZE); j++)
 		pvb[j] = pvb[j+1];
 	write_screen_from_pvb();
 }
