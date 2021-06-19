@@ -24,7 +24,7 @@ typedef enum {
     PAGE_USER_AND_SUPERVISOR
 } PagePermission;
 
-static PageDirEntry construct_page_dir_entry(
+static PageDirEntry constructPageDirEntry(
     uint32_t pfn,
     PageSize page_size,
     PageRW rw,
@@ -33,7 +33,7 @@ static PageDirEntry construct_page_dir_entry(
     PageDirEntry entry = 0;
     // Sanity check (slow, but we're new and bugs are scary)
     if (pfn >= 0x40000) {
-        kprintf("construct_page_dir_entry received a bad PFN!\n");
+        kprintf("constructPageDirEntry received a bad PFN!\n");
         while (true);
     }
     entry |= pfn << 22; // bits 31:22
@@ -47,13 +47,13 @@ static PageDirEntry construct_page_dir_entry(
     return entry;
 }
 
-static PageDirEntry construct_empty_page_dir_entry(
+static PageDirEntry constructEmptyPageDirEntry(
     PageSize page_size,
     PageRW rw,
     PagePermission permission
 ) {
     PageDirEntry entry =
-        construct_page_dir_entry(0, page_size, rw, permission);
+        constructPageDirEntry(0, page_size, rw, permission);
     // Clear present bit
     entry &= ~1;
     return entry;
@@ -75,7 +75,7 @@ static union {
 // Virtual Page Number: VPN
 //  This is the part of the address that indexes the page directory.
 //  The page directory has 1024 entries, so the top 10 bits are the VPN.
-static uint32_t get_virtual_page_number(uint32_t virtual_address) {
+static uint32_t getVirtualFrameNumber(uint32_t virtual_address) {
     return virtual_address >> 22;
 }
 
@@ -102,7 +102,7 @@ static bool is_frame_used(uint32_t pfn) {
     return page_frame_map.words[pfn / 32] & (1 << (pfn % 32));
 }
 
-static void set_frame_used(uint32_t pfn) {
+static void setFrameUsed(uint32_t pfn) {
     page_frame_map.words[pfn / 32] |= (1 << (pfn % 32));
 }
 
@@ -112,9 +112,9 @@ extern void flush_tlb(); // in boot.s for now
 // physical memory that is so far unused, and maps the page directory
 // entry corresponding to the fault to this frame. It also marks that
 // frame as used, so it doesn't get reused in the future.
-extern uint32_t get_fault_address(); // in boot.s for now
+extern uint32_t getFaultAddress(); // in boot.s for now
 void handle_page_fault() {
-    uint32_t fault_address = get_fault_address();
+    uint32_t fault_address = getFaultAddress();
     uint32_t pfn;
     // Find an unallocated page frame
     for (uint8_t region_index = 0; region_index < physical_memory_region_count; region_index++) {
@@ -152,11 +152,11 @@ void handle_page_fault() {
 
  found_id:
     // Set frame as allocated
-    set_frame_used(pfn);
+    setFrameUsed(pfn);
 
     // Now, update the page directory to reference this frame
-    uint32_t vpn = get_virtual_page_number(fault_address);
-	page_directory[vpn] = construct_page_dir_entry(
+    uint32_t vpn = getVirtualFrameNumber(fault_address);
+	page_directory[vpn] = constructPageDirEntry(
         pfn, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
     );
 
@@ -179,7 +179,7 @@ typedef struct {
 // Use the information GRUB passes us after bootup to figure out what
 // parts of the physical address space are actually backed by real
 // memory.
-void load_physical_memory_region_descriptors(MultibootInfo* multiboot_info) {
+void loadPhysicalMemoryRegionDescriptors(MultibootInfo* multiboot_info) {
     if ((multiboot_info->flags & (1 << 6)) == 0) {
         kprintf("GRUB did not provide memory information. Failure.\n");
         while (1);
@@ -207,7 +207,7 @@ void load_physical_memory_region_descriptors(MultibootInfo* multiboot_info) {
     kprintf("====================\n");
 }
 
-extern void enable_paging(void*); // in boot.s for now
+extern void enablePaging(void*); // in boot.s for now
 
 // Setting this bit allows us to use huge pages that span 4 MiB of
 // virtual address space, rather than cascading from the page
@@ -215,7 +215,7 @@ extern void enable_paging(void*); // in boot.s for now
 // address space.
 const uint32_t PS_BIT = (1<<7);
 
-void setup_paging() {
+void setupPaging() {
     // Zero the page directory entirely
     //  We're setting proper bits on these unused entries, but we
     //  really don't need to. The OS will never look at an entry until
@@ -223,7 +223,7 @@ void setup_paging() {
     for (int i = 0; i < 1024; i++) {
         page_directory[i] = 0;
         /*
-        page_directory[i] = construct_empty_page_dir_entry(
+        page_directory[i] = constructEmptyPageDirEntry(
             PAGE_SIZE_4_MIB,
             PAGE_READ_WRITE,
             PAGE_USER_AND_SUPERVISOR
@@ -231,7 +231,7 @@ void setup_paging() {
     }
 
     // Map low memory (first 4MB) (this is what we're operating under)
-    page_directory[0] = construct_page_dir_entry(
+    page_directory[0] = constructPageDirEntry(
         0, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
     );
 
@@ -244,5 +244,5 @@ void setup_paging() {
     page_frame_map.words[0] |= (1 << 0);
 
     // Finally we can actually enable paging
-	enable_paging(page_directory);
+	enablePaging(page_directory);
 }

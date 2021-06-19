@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <kstdlib.h>
 
-static bool eval_rsdp_checksum(struct RSDPDescriptor* rsdp) {
+static bool evalRSDPChecksum(struct RSDPDescriptor* rsdp) {
 	uint8_t sum = 0;
 	// The sum of all bytes in the rsdp structure should = 0
 	for(size_t i = 0; i < sizeof(*rsdp); i++){
@@ -23,7 +23,7 @@ static bool eval_rsdp_checksum(struct RSDPDescriptor* rsdp) {
 	return sum == 0;
 }
 
-struct RSDPDescriptor* get_rsdp(){
+struct RSDPDescriptor* getRSDP(){
 
 	// RSDP will be located in the main BIOS memory below 1MB
 	// (0x000E0000 to 0x000FFFFF) on a 16-byte boundary
@@ -32,7 +32,7 @@ struct RSDPDescriptor* get_rsdp(){
 	for(char* loc = (char*)0x000E0000; loc <= (char*)0x000FFFFF; loc += 16){
 		// strcmp for "RSD PTR ", if success, we have found it!
 		if(kmemcmp("RSD PTR ", (char*)loc, 8) == 0){
-			if(!eval_rsdp_checksum((struct RSDPDescriptor*)loc)) continue;
+			if(!evalRSDPChecksum((struct RSDPDescriptor*)loc)) continue;
 			return (struct RSDPDescriptor*)loc;
 		}
 	}

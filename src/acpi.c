@@ -44,17 +44,17 @@
 static struct RSDPDescriptor* rsdp = NULL;
 static struct RSDT* rsdt = NULL;
 
-bool acpi_eval_header_checksum(struct ACPISDTHeader* header) {
+bool acpiEvalHeaderChecksum(struct ACPISDTHeader* header) {
 	unsigned char sum = 0;
 
-	for(int i = 0; i < header->length; i++)
+	for(uint32_t i = 0; i < header->length; i++)
 		sum += ((char*) header)[i];
 
 	return sum == 0;
 }
 
-void acpi_testing() {
-	struct RSDPDescriptor* rsdp = get_rsdp();	
+void acpiTesting() {
+	struct RSDPDescriptor* rsdp = getRSDP();	
 	if(rsdp == NULL){
 		kprintf("Unable to locate RSDP :(\n");
 		return;

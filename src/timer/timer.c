@@ -18,39 +18,39 @@ extern void init_PIT(uint32_t desired_freq);
 uint16_t read_PIT_count(void) {
 	uint16_t count = 0;
 
-	disable_interrupts();
+	cli();
 
 	outb(0x43, 0);
 
-	io_wait();
+	ioWait();
 
 	count = inb(0x40);
 	count |= inb(0x40)<<8;
 
-	enable_interrupts();
+	sti();
 
 	return count;
 }
 
 void set_PIT_count(uint16_t count) {
-	disable_interrupts();
+	cli();
 
 	outb(0x40, count&0xff);
 	outb(0x40, (count&0xff00)>>8);
 
-	enable_interrupts();
+	sti();
 	return;
 }
 
-void init_PIT_timer() {
-	disable_interrupts();
+void initPITTimer() {
+	cli();
 //	init_PIT(1000); // Externed in PIT.s
 	outb(0x43, 0x34);
 	outb(0x40, 0xa9);
 	outb(0x40, 0x04);
 	
 	outb(0x43, 0xe2);
-	io_wait();
+	ioWait();
 	kprintf("PIT Status: 0x%x\n", inb(0x43));
 	/*
 	kprintf("IRQ0_ms: 0x%d\n", IRQ0_ms);
@@ -60,5 +60,5 @@ void init_PIT_timer() {
 	uint16_t pit_count = read_PIT_count();
 	kprintf("PIT count: %x\n", pit_count);
 	*/
-	enable_interrupts();
+	sti();
 }

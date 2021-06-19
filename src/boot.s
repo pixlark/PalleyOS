@@ -25,13 +25,13 @@ _start:
     push %eax
     push %ebx
     
-	call kernel_main
+	call kernelMain
 
 	jmp .
 
-.global enable_paging
-.type enable_paging, @function
-enable_paging:
+.global enablePaging
+.type enablePaging, @function
+enablePaging:
 	push %ebp
 	mov %esp, %ebp
 
@@ -68,17 +68,17 @@ flush_tlb:
 # Function that takes in a pointer to the 
 # IDTInfo struct and loads the idt 
 .extern idt_info
-.global load_idt
-.type load_idt, @function
-load_idt:
+.global idtLoad
+.type idtLoad, @function
+idtLoad:
 	lidt (idt_info)
 	ret
 
 .extern gp
 # setGdt(uint32_t* GDT, uint16_t sizeof(GDT))
-.global gdt_flush
-.type gdt_flush, @function
-gdt_flush:
+.global gdtFlush
+.type gdtFlush, @function
+gdtFlush:
 	lgdt (gp)
 	mov $0x10, %ax
 	mov %ax, %ds
@@ -90,9 +90,9 @@ gdt_flush:
 .reload_CS:
 	ret
 
-.global get_fault_address
-.type get_fault_address, @function
-get_fault_address:
+.global getFaultAddress
+.type getFaultAddress, @function
+getFaultAddress:
     mov %cr2, %eax
     ret
 

@@ -25,7 +25,7 @@
 #error "must use x86"
 #endif
 
-void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
+void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     // Get RAM info from GRUB
     if (magic != 0x2BADB002) {
         return;
@@ -33,31 +33,31 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
 
 	/* Set up IDT */
 	kprintf("Setting up the IDT\n");
-	handle_idt_setup();
+	idtHandleSetup();
 
 	/* Set up GDT */	
 	kprintf("Setting up GDT\n");
-	setup_gdt();
+	gdtInit();
 
 	/* Init PIT */
-	init_PIT_timer();
+	initPITTimer();
     
     
     // Inform the memory unit of our physical memory situation
-    load_physical_memory_region_descriptors(multiboot_info);
+    loadPhysicalMemoryRegionDescriptors(multiboot_info);
 
     // Now, setup paging so we can use our physical memory
-    setup_paging();
+    setupPaging();
 
-    initialize_kheap();
+    kheapInit();
 
 	/* Init Timer and PIT */
-	init_PIT_timer();
+	initPITTimer();
 
-	load_cpuid();
-	print_cpuid_vendor();
+	loadCpuid();
+	cpuidPrintVendor();
 
-	pci_check_all_buses();
+	pciCheckAllBuses();
     
 	kShellStart();
 }

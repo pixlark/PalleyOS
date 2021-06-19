@@ -18,11 +18,11 @@ struct gdt_ptr {
 	uint32_t base;
 }__attribute__((packed));
 
-extern void gdt_flush();
+extern void gdtFlush();
 struct GDTEntry GDT[3];
 struct gdt_ptr gp;
 
-void gdt_set_gate(int num, uint32_t base, uint32_t limit,
+void gdtSetGate(int num, uint32_t base, uint32_t limit,
 						   uint8_t access, uint8_t gran) {
 	/* Set up descriptor base address */
 	GDT[num].base_low = (base & 0xffff);
@@ -39,12 +39,12 @@ void gdt_set_gate(int num, uint32_t base, uint32_t limit,
 }
 
 
-void setup_gdt() {
+void gdtInit() {
 	// Sets flat segments that span all of memory
 	// TODO: Change so half of memory is for kernel, other half for user
 
 	/* NULL Descriptor */
-	gdt_set_gate(0, 0, 0, 0, 0);
+	gdtSetGate(0, 0, 0, 0, 0);
 
 	/* Base Adress: 0
 	 * Limit is 4GiB
@@ -52,12 +52,12 @@ void setup_gdt() {
 	 * Uses 32-bit opcodes
 	 * Code Segment Descriptor
 	 */
-	gdt_set_gate(1, 0, 0xffffffff, 0x9A, 0xCF); 
+	gdtSetGate(1, 0, 0xffffffff, 0x9A, 0xCF); 
 
 	/* Data Segment Descriptor
 	 * Same as above but descriptor type is DS
 	 */
-	gdt_set_gate(2, 0, 0xffffffff, 0x92, 0xCF);
+	gdtSetGate(2, 0, 0xffffffff, 0x92, 0xCF);
 
 	kprintf("GDT loc: 0x%x\n", &GDT);
 
@@ -65,6 +65,6 @@ void setup_gdt() {
 	gp.base = (uint32_t)&GDT;
 	
 	/* Flush out the old GDT and install the new changes */
-	gdt_flush();
+	gdtFlush();
 }
 

@@ -11,7 +11,7 @@
 extern char const *kb_keyset;
 extern char const *kb_keyset_upper;
 
-static void handle_e0_key(MappedKey key) {
+static void handleE0Key(MappedKey key) {
 	switch(key.mapped_code) {
 		case KEY_ARROW_UP:
 			tio_shift_term_line(1);				

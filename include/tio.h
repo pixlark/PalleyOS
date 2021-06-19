@@ -33,7 +33,7 @@ typedef enum {
 	VGA_COLOR_WHITE = 15,
 } vga_color;
 
-void tio_enable_cursor();
+void tioEnableCursor();
 
 void term_write_char(char c);
 void term_write_char_color(char c, vga_color vc);
@@ -41,14 +41,14 @@ void term_write_char_color(char c, vga_color vc);
 void term_write(char* string);
 void term_write_color(char* string, vga_color vc);
 
-void term_write_int(int n, unsigned int base);
-void term_write_int32(int32_t l, unsigned int base);
+void termWriteInt(int n, unsigned int base);
+void termWriteInt32(int32_t l, unsigned int base);
 void term_write_uint32(uint32_t ul, unsigned int base);
 
 void tio_shift_term_line(int n);
 
-void tio_inc_cursor();
-void tio_dec_cursor();
+void tioIncCursor();
+void tioDecCursor();
 void tio_backspace();
 
 void tio_shift_right();
