@@ -8,10 +8,11 @@
 	the Fixed ACPI Description Table (FADT) which contains information to enable the ACPI
 
  */
-#include <aspci.h>
+#include <acpi.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <kstdlib.h>
 
 static bool eval_rsdp_checksum(struct RSDPDescriptor* rsdp) {
 	uint8_t sum = 0;
@@ -22,7 +23,7 @@ static bool eval_rsdp_checksum(struct RSDPDescriptor* rsdp) {
 	return sum == 0;
 }
 
-static struct RSDPDescriptor* get_rsdp(){
+struct RSDPDescriptor* get_rsdp(){
 
 	// RSDP will be located in the main BIOS memory below 1MB
 	// (0x000E0000 to 0x000FFFFF) on a 16-byte boundary
@@ -30,7 +31,7 @@ static struct RSDPDescriptor* get_rsdp(){
 	// **note the extra space in the 8th byte
 	for(char* loc = (char*)0x000E0000; loc <= (char*)0x000FFFFF; loc += 16){
 		// strcmp for "RSD PTR ", if success, we have found it!
-		if(memcmp("RSD PTR ", (char*)loc, 8) == 0){
+		if(kmemcmp("RSD PTR ", (char*)loc, 8) == 0){
 			if(!eval_rsdp_checksum((struct RSDPDescriptor*)loc)) continue;
 			return (struct RSDPDescriptor*)loc;
 		}
