@@ -1,6 +1,6 @@
 .section .text
 
-# This is called at the beginning of ideRead_buffer
+# This is called at the beginning of ideReadBuffer
 # It would be inline asm, but doing it in c trashes ES and ESP for all of the code
 # between begin and end
 .global readBufferBegin

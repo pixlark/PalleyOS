@@ -18,6 +18,7 @@ static uint8_t atapi_packet[12] = {0xA8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 struct IDEDevice ide_devices[4];
 struct IDEChannelRegisters channels[2];
 
+static PRD prdt[1] __attribute__((aligned (64*1024)));
 
 void ideWrite(uint8_t channel, uint8_t reg, uint8_t data) {
    if (reg > 0x07 && reg < 0x0C)
@@ -117,7 +118,7 @@ void read_insl(uint16_t port, uint32_t* buffer, uint32_t num_times){
 extern void readBufferBegin(void);
 extern void insl (uint16_t port, uint32_t buffer, uint32_t num_times);
 extern void readBufferEnd(void);
-void ideRead_buffer (uint8_t channel, uint8_t reg, uint32_t* buffer,
+void ideReadBuffer (uint8_t channel, uint8_t reg, uint32_t* buffer,
 		uint32_t num_quads) {
 	if (reg > 0x07 && reg < 0x0C)
 		ideWrite(channel, ATA_REG_CONTROL, 0x80 | channels[channel].no_interrupt);
@@ -144,6 +145,8 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 	channels[ATA_SECONDARY].ctrl  = (BAR3 & 0xFFFFFFFC) + 0x376 * (!BAR3);
 	channels[ATA_PRIMARY  ].bmide = (BAR4 & 0xFFFFFFFC) + 0; // Bus Master IDE
 	channels[ATA_SECONDARY].bmide = (BAR4 & 0xFFFFFFFC) + 8; // Bus Master IDE
+    kprintf("bmide_prim 0x%x\n", channels[ATA_PRIMARY  ].bmide);
+    kprintf("bmide_secondary 0x%x\n", channels[ATA_SECONDARY  ].bmide);
 
 	// 2. Disable IRQs in both channels
 	ideWrite(ATA_PRIMARY  , ATA_REG_CONTROL, 2); // setting nIEN (no_interrupt) in Control Port
@@ -190,7 +193,7 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 			}
 
 			// v. Read the Identification Space of the Device	
-			ideRead_buffer(i, ATA_REG_DATA, (uint32_t*) ide_buf, 128);	
+			ideReadBuffer(i, ATA_REG_DATA, (uint32_t*) ide_buf, 128);	
 
 			// vi. Read Device Parameters
 			ide_devices[count].reserved = 1;
@@ -287,7 +290,7 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 	}
 
 	// 2. See if drive supports DMA
-	dma = 0; // We don't support DMA yet
+	dma = 0;
 
 	// 3. Wait if the drive is busy
 	while (ideRead(channel, ATA_REG_STATUS) & ATA_SR_BSY);
@@ -320,54 +323,66 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 
 
 	// 6. Select the command and send it
-	if (lba_mode == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;
-	if (lba_mode == 1 && dir == 0) cmd = ATA_CMD_READ_PIO;
-	if (lba_mode == 2 && dir == 0) cmd = ATA_CMD_READ_PIO_EXT;
-	if (lba_mode == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
-	if (lba_mode == 1 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
-	if (lba_mode == 2 && dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
-	ideWrite(channel, ATA_REG_COMMAND, cmd);
+   if (lba_mode == 0 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;
+   else if (lba_mode == 1 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;   
+   else if (lba_mode == 2 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO_EXT;   
+   else if (lba_mode == 0 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA;
+   else if (lba_mode == 1 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA;
+   else if (lba_mode == 2 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA_EXT;
+   else if (lba_mode == 0 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+   else if (lba_mode == 1 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+   else if (lba_mode == 2 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
+   else if (lba_mode == 0 && dma == 1 && dir == 1) cmd = ATA_CMD_WRITE_DMA;
+   else if (lba_mode == 1 && dma == 1 && dir == 1) cmd = ATA_CMD_WRITE_DMA;
+   else cmd = ATA_CMD_WRITE_DMA_EXT;
+    
+   ideWrite(channel, ATA_REG_COMMAND, cmd);
 
 	// After sending the command, we should poll, then read/write a sector and repeat
 	// until all sectors needed, or if an error has occured, the function will
 	// return a specific error code
-	if (dir == 0) {
-		for (int i = 0; i < num_sects; i++) {
-			if((err = ide_polling(channel, 1))) {
-				return err; // Polling, set error and exit if there is;
-			}
-			//kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
-            for(size_t j = 0; j < words*2; j+=2) {
-                uint16_t tmp = inw(bus);
+    if(dma){
+        
 
-                buffer[j] = (tmp & 0xff00) >> 8;
-                buffer[j+1] = tmp & 0xff;
+    }else {
+        if (dir == 0) {
+            for (int i = 0; i < num_sects; i++) {
+                if((err = ide_polling(channel, 1))) {
+                    return err; // Polling, set error and exit if there is;
+                }
+                //kprintf("ATA Reading!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+                for(size_t j = 0; j < words*2; j+=2) {
+                    uint16_t tmp = inw(bus);
+
+                    buffer[j] = (tmp & 0xff00) >> 8;
+                    buffer[j+1] = tmp & 0xff;
+                }
+                //ataReadFromPort(bus, buffer, words);
+                buffer += (words*2);
             }
-			//ataReadFromPort(bus, buffer, words);
-			buffer += (words*2);
-		}
-	} else {
-		for (int i = 0; i < num_sects; i++) {
-			ide_polling(channel, 0); // Polling
-			//kprintf("ATA Writing!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
-            for(size_t j = 0; j < words*2; j+=2) {
-                uint16_t tmp = ((uint16_t)buffer[j] <<8);
-                tmp |= (uint16_t)buffer[j+1] & 0xff;
+        } else {
+            for (int i = 0; i < num_sects; i++) {
+                ide_polling(channel, 0); // Polling
+                //kprintf("ATA Writing!, buffer: 0x%x, bus: 0x%x\n", buffer, bus);
+                for(size_t j = 0; j < words*2; j+=2) {
+                    uint16_t tmp = ((uint16_t)buffer[j] <<8);
+                    tmp |= (uint16_t)buffer[j+1] & 0xff;
 
-                outw(bus, tmp);
+                    outw(bus, tmp);
+                }
+                //ataWriteToPort(bus, buffer, words);
+                buffer += (words*2);
             }
-			//ataWriteToPort(bus, buffer, words);
-			buffer += (words*2);
-		}
 
-		// Flush the cache
-		ideWrite(channel, ATA_REG_COMMAND, (char[]) {
-				ATA_CMD_CACHE_FLUSH,
-				ATA_CMD_CACHE_FLUSH,
-				ATA_CMD_CACHE_FLUSH_EXT
-				}[lba_mode]);
-		ide_polling(channel, 0); // Polling
-	}
+            // Flush the cache
+            ideWrite(channel, ATA_REG_COMMAND, (char[]) {
+                    ATA_CMD_CACHE_FLUSH,
+                    ATA_CMD_CACHE_FLUSH,
+                    ATA_CMD_CACHE_FLUSH_EXT
+                    }[lba_mode]);
+            ide_polling(channel, 0); // Polling
+        }
+    }
 
 	return 0; // wow thats a mammoth
 }
@@ -413,6 +428,19 @@ uint8_t ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 		return ide_print_error(drive, err);	
 	}
 
+}
+
+uint8_t ideReadDMASectors(uint8_t drive, uint16_t num_sects, uint32_t lba, uint32_t* address) {
+    prdt[0].address = (uintptr_t) address;
+    prdt[0].byte_count = num_sects * 512;
+    prdt[0].reserved = 0x8000;
+
+
+    // Reading code... (send lba bits, set start/stop bit, etc)
+}
+
+void ataSetPrdt() {
+   // Set bus master prdt register 
 }
 
 void ata_test (){

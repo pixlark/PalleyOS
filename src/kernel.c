@@ -58,6 +58,8 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	cpuidPrintVendor();
 
 	pciCheckAllBuses();
-    
+
+    ata_test();
+
 	kShellStart();
 }

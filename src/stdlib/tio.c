@@ -18,14 +18,14 @@ static uint16_t pvb[PVB_SIZE] = {' ' | VGA_COLOR_BLACK << 8};
 static int pvb_row = PVB_NUM_ROWS / 2; 
 
 static void writeScreenFromPVB();
-static void tioUpdateCursor(int x, int y);
+static void updateCursor(int x, int y);
 
 static inline uint16_t vgaEntry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-static void update_cursor(int x, int y);
-static void tio_shift_term_line(int n);
+static void updateCursor(int x, int y);
+static void tioShiftTermLine(int n);
 
 /* TODO: This should be called whenever tryiing to write
  * at term_row, term_col. The screen could be shifted.
@@ -40,10 +40,10 @@ void tioIncCursor() {
 	}
 
 	if(term_row >= TERM_HEIGHT-1) {
-        tio_shift_term_line(1);
+        tioShiftTermLine(1);
         writeScreenFromPVB();
     }
-	update_cursor(term_col, term_row);
+	updateCursor(term_col, term_row);
 }
 
 void tioDecCursor() {
@@ -54,7 +54,7 @@ void tioDecCursor() {
 	}
 	if(term_row < 0) term_row = 0;
 
-	tioUpdateCursor(term_col, term_row);
+	updateCursor(term_col, term_row);
 }
 
 void tioBackspace() {
@@ -94,13 +94,13 @@ inline void tioWriteChar(char c) {
 	tioWriteCharColor(c, VGA_COLOR_WHITE);
 }
 
-void term_write_char_color(char c, vga_color vc){
+void tioWriteCharColor(char c, vga_color vc){
 
 	if(c == '\n') {
 		term_row ++;
 		term_col = 0;
 		if(term_row >= TERM_HEIGHT-1){
-			tio_shift_term_line(1);
+			tioShiftTermLine(1);
             writeScreenFromPVB();
         }
 		return;
@@ -113,7 +113,7 @@ void term_write_char_color(char c, vga_color vc){
 	vb[index] = vgaEntry(c, vc);
 	pvb[index + pvb_row*TERM_WIDTH] = vb[index];
 	tioIncCursor();
-	tioUpdateCursor(term_col, term_row);
+	updateCursor(term_col, term_row);
 }
 
 void tioWrite(char* string) {
@@ -138,7 +138,7 @@ void tioEnableCursor()
 	outb(0x3D5, (inb(0x3D5) & 0xE0) | 15);
 }
 
-static void tioUpdateCursor(int x, int y)
+static void updateCursor(int x, int y)
 {
 	int16_t pos = y * TERM_WIDTH + x;
 	if(pos >= VB_SIZE) return;
@@ -188,7 +188,7 @@ void tioShiftTermLineProtected(int n) {
         return;
     }
 
-    tio_shift_term_line(n);
+    tioShiftTermLine(n);
 	writeScreenFromPVB();
 }
 
