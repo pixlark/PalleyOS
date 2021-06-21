@@ -392,9 +392,9 @@ void kbGetLine(char* buffer) {
                 tioIncCursor();
                 if(index > size-1) index = size-1;
             }else if(key.mapped_code == KEY_ARROW_UP) {
-				tioShiftTermLine(1);
+				tioShiftTermLineProtected(1);
 			}else if(key.mapped_code == KEY_ARROW_DOWN) {
-				tioShiftTermLine(-1);
+				tioShiftTermLineProtected(-1);
 			}else if(key.mapped_code == KEY_BACKSPACE) {
 				if(index <= 0) continue;
                 tioShiftLeft();

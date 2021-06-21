@@ -25,6 +25,10 @@ OBJS = $(patsubst %.s,%.o,$(OBJSC))  # Change .s to .o
 
 all: $(DIRS) $(BUILD_DIR)/palleyos.iso
 
+$(DIRS):
+	mkdir -p $@
+	echo $@
+
 $(BUILD_DIR)/palleyos.iso: $(BUILD_DIR)/palleyos.bin
 	@make --silent make-$(ISO_DIR)
 	mkdir -p $(ISO_DIR)/boot/grub
@@ -54,9 +58,6 @@ $(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c make-$(STD_LIB_DIR)
 
 .PHONY: run run-bin run-server clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR) file1
 
-$(DIRS):
-	mkdir -p $@
-
 make-$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
@@ -72,21 +73,21 @@ make-$(STD_LIB_DIR):
 make-$(TIMER_DIR):
 	@mkdir -p obj/$(TIMER_DIR)
 
-run: $(BUILD_DIR)/palleyos.iso
+run: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-boot d \
 		-m 256M \
 		-cdrom $(BUILD_DIR)/palleyos.iso \
 		-drive format=raw,file=./palleyos.img
 
-run-bin: $(BUILD_DIR)/palleyos.iso
+run-bin: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-boot d \
 		-m 256M \
 		-kernel $(BUILD_DIR)/palleyos.bin \
 		-drive format=raw,file=./palleyos.img
 
-run-server: $(BUILD_DIR)/palleyos.iso
+run-server: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-m 256M \
 		-cdrom $(BUILD_DIR)/palleyos.iso

@@ -24,20 +24,14 @@ static inline uint16_t vgaEntry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
-/* TODO: This should be called whenever trying to write
+static void update_cursor(int x, int y);
+static void tio_shift_term_line(int n);
+
+/* TODO: This should be called whenever tryiing to write
  * at term_row, term_col. The screen could be shifted.
  * If that is the case, this will shift the screen so 
  * the user can see where they are typing
  */
-static void tioFixScreenPos() {
-	int num_shifts = term_row - TERM_HEIGHT;
-	
-	if(num_shifts > 0) tioShiftTermLine(num_shifts);
-	else if(num_shifts	< -TERM_HEIGHT) {
-		tioShiftTermLine(term_row-TERM_HEIGHT/2);
-	}
-}
-
 void tioIncCursor() {
 	term_col++;
 	if(term_col >= TERM_WIDTH) {
@@ -45,12 +39,14 @@ void tioIncCursor() {
 		term_col = 0;
 	}
 
-	if(term_row >= TERM_HEIGHT-1) tioShiftTermLine(1);
-	tioUpdateCursor(term_col, term_row);
+	if(term_row >= TERM_HEIGHT-1) {
+        tio_shift_term_line(1);
+        writeScreenFromPVB();
+    }
+	update_cursor(term_col, term_row);
 }
 
 void tioDecCursor() {
-	tioFixScreenPos();
 	term_col--;
 	if(term_col < 0){
 		term_row--;
@@ -98,14 +94,15 @@ inline void tioWriteChar(char c) {
 	tioWriteCharColor(c, VGA_COLOR_WHITE);
 }
 
-void tioWriteCharColor(char c, vga_color vc){
-	tioFixScreenPos();
+void term_write_char_color(char c, vga_color vc){
 
 	if(c == '\n') {
 		term_row ++;
 		term_col = 0;
-		if(term_row >= TERM_HEIGHT-1)
-			tioShiftTermLine(1);
+		if(term_row >= TERM_HEIGHT-1){
+			tio_shift_term_line(1);
+            writeScreenFromPVB();
+        }
 		return;
 	}else if(c == '\r'){
 		term_col = 0;
@@ -154,39 +151,44 @@ static void tioUpdateCursor(int x, int y)
 
 static void shiftPVBToHalfway() {
 	
-	int shift_dist = pvb_row - (PVB_NUM_ROWS/2);
-	if(shift_dist < 0) return; // Shifting down not implemented
+    int shift_dist = PVB_NUM_ROWS/4;
 
-	for(int row = 0; row < PVB_NUM_ROWS; row++){
-		for(int col = 0; col < TERM_WIDTH; col++){
-			int pvb_index = row*TERM_WIDTH + col;
-			int prev_pvb_index = (row + shift_dist)*TERM_WIDTH + col;
+	for(uint32_t row = 0; row < PVB_NUM_ROWS; row++){
+		for(uint32_t col = 0; col < TERM_WIDTH; col++){
+			uint32_t pvb_index = row*TERM_WIDTH + col;
+			uint32_t prev_pvb_index = (row + shift_dist)*TERM_WIDTH + col;
 			if(row + shift_dist > PVB_NUM_ROWS)
-				pvb[pvb_index] = 0; 
+				pvb[pvb_index] = ' ' | VGA_COLOR_BLACK;
 			else
 				pvb[pvb_index] = pvb[prev_pvb_index];
 		}
 	}
 
-	pvb_row = PVB_NUM_ROWS/2;
+	pvb_row -= shift_dist;
 }
 
 void tioShiftTermLine(int n) {
 	int desired_pvb_row = pvb_row + n;
 
 	// If we hit top, no more scrolling, just print the screen
-	if(pvb_row + n < 0) {
+	if(desired_pvb_row < 0) {
 		pvb_row = 0;
 	}
-	else if(pvb_row > PVB_NUM_ROWS-1){
-		shiftPVBToHalfway();
-		term_row = 0;
+	else if(pvb_row > PVB_NUM_ROWS-TERM_HEIGHT-1){
+		shiftPVBToHalfway(); 
 	}
 	else{
 		pvb_row = desired_pvb_row;
 		term_row -= n;
 	}
+}
 
+void tioShiftTermLineProtected(int n) {
+	if(term_row - n < 0){
+        return;
+    }
+
+    tio_shift_term_line(n);
 	writeScreenFromPVB();
 }
 
