@@ -10,10 +10,13 @@ typedef struct {
 } SknyHandle;
 
 typedef enum {
-    SKNY_CREATE_OK,
+    SKNY_STATUS_OK,
     SKNY_WRITE_FAILURE,
-} CreateStatus;
+    SKNY_READ_FAILURE,
+    SKNY_FILESYSTEM_FULL
+} SknyStatus;
 
-typedef uint32_t ChunkLocation;
+extern const char* sknyStatusToString(SknyStatus status);
 
-CreateStatus createFilesystem(SknyHandle* handle, uint8_t drive);
+SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive);
+SknyStatus sknyCreateFile(SknyHandle* handle, const char* name);

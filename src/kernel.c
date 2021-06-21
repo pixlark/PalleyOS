@@ -73,7 +73,17 @@ void kernel_main(MultibootInfo* multiboot_info, uint32_t magic) {
     {
         uint8_t drive = 0;
         SknyHandle handle;
-        createFilesystem(&handle, drive);
+        SknyStatus status;
+        if ((status = sknyCreateFilesystem(&handle, drive)) != SKNY_STATUS_OK) {
+            kprintf("(!) Error formatting filesystem!\n  %s\n", sknyStatusToString(status));
+            while (true);
+        }
+        for (int i = 0; i < 100; i++) {
+            if ((status = sknyCreateFile(&handle, "blah.txt")) != SKNY_STATUS_OK) {
+                kprintf("(!) Error creating file #%d!\n  %s\n", i, sknyStatusToString(status));
+                while(true);
+            }
+        }
     }
 
 	terminal_proc_start();
