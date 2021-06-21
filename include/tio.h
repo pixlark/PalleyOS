@@ -45,7 +45,7 @@ void termWriteInt(int n, unsigned int base);
 void termWriteInt32(int32_t l, unsigned int base);
 void term_write_uint32(uint32_t ul, unsigned int base);
 
-void tio_shift_term_line(int n);
+void tioShiftTermLineProtected(int n);
 
 void tioIncCursor();
 void tioDecCursor();

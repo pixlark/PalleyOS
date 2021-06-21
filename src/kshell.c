@@ -14,19 +14,19 @@ extern char const *kb_keyset_upper;
 static void handleE0Key(MappedKey key) {
 	switch(key.mapped_code) {
 		case KEY_ARROW_UP:
-			tio_shift_term_line(1);				
+			tioShiftTermLineProtected(-1);				
 			break;
 
 		case KEY_ARROW_DOWN:
-			tio_shift_term_line(-1);				
+			tioShiftTermLineProtected(1);				
 			break;
 
 		case PAGE_UP:
-			tio_shift_term_line(TERM_HEIGHT / 2);				
+			tioShiftTermLineProtected(-(TERM_HEIGHT / 2));				
 			break;
 
 		case PAGE_DOWN:
-			tio_shift_term_line(-(TERM_HEIGHT / 2));
+			tioShiftTermLineProtected(TERM_HEIGHT / 2);
 			break;
 		default:
 			break;
