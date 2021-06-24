@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <kstdio.h>
 #include <kstdlib.h>
+#include <kheap.h>
 #include <io.h>
 #include <ata.h>
 #include <timer.h>
@@ -18,7 +19,11 @@ static uint8_t atapi_packet[12] = {0xA8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 struct IDEDevice ide_devices[4];
 struct IDEChannelRegisters channels[2];
 
+static uint8_t dmaArray[1024*64] __attribute__((aligned(64*1024))) = "Nothing Written"; // 64 kib
 static PRD prdt[1] __attribute__((aligned (64*1024)));
+static PRD test_prd __attribute__ ((aligned (4)));
+
+void ideSendPRDT(uint8_t drive, uint32_t prdt_addr);
 
 void ideWrite(uint8_t channel, uint8_t reg, uint8_t data) {
    if (reg > 0x07 && reg < 0x0C)
@@ -145,8 +150,7 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 	channels[ATA_SECONDARY].ctrl  = (BAR3 & 0xFFFFFFFC) + 0x376 * (!BAR3);
 	channels[ATA_PRIMARY  ].bmide = (BAR4 & 0xFFFFFFFC) + 0; // Bus Master IDE
 	channels[ATA_SECONDARY].bmide = (BAR4 & 0xFFFFFFFC) + 8; // Bus Master IDE
-    kprintf("bmide_prim 0x%x\n", channels[ATA_PRIMARY  ].bmide);
-    kprintf("bmide_secondary 0x%x\n", channels[ATA_SECONDARY  ].bmide);
+
 
 	// 2. Disable IRQs in both channels
 	ideWrite(ATA_PRIMARY  , ATA_REG_CONTROL, 2); // setting nIEN (no_interrupt) in Control Port
@@ -231,9 +235,12 @@ void ide_initialize (uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3,
 		}
 }
 
+// Defined in ata_helpers.s
 extern void ataReadFromPort(uint16_t port, char* buffer, uint32_t num_reads);
 extern void ataWriteToPort(uint16_t port, char* buffer, uint32_t num_reads);
-// Used by ideRead/write_sectors
+// Used by ideRead/WriteSectors
+// if dir=0, read
+// if dir=1, write
 uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 						uint8_t num_sects, char* buffer) {
 	uint8_t lba_mode, 	/* 0: CHS, 1:LBA48 */
@@ -291,6 +298,8 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 
 	// 2. See if drive supports DMA
 	dma = 0;
+    if(dma) { // DMA setup
+    }
 
 	// 3. Wait if the drive is busy
 	while (ideRead(channel, ATA_REG_STATUS) & ATA_SR_BSY);
@@ -342,7 +351,12 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 	// until all sectors needed, or if an error has occured, the function will
 	// return a specific error code
     if(dma){
-        
+        uint8_t channel = ide_devices[drive].channel;
+        uint16_t base_port = channels[channel].bmide;
+        uint8_t oldComRegister = inb(base_port + 0x0);
+        outb(base_port + 0x0, oldComRegister | 1); // Set Start/Stop bit (put in DMA mode)
+
+        kprintf("COM Register: 0x%x\n", inb(base_port + 0x0));
 
     }else {
         if (dir == 0) {
@@ -427,39 +441,207 @@ uint8_t ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 			err = 4; // Write is protected
 		return ide_print_error(drive, err);	
 	}
-
 }
 
-uint8_t ideReadDMASectors(uint8_t drive, uint16_t num_sects, uint32_t lba, uint32_t* address) {
-    prdt[0].address = (uintptr_t) address;
-    prdt[0].byte_count = num_sects * 512;
-    prdt[0].reserved = 0x8000;
-
-
-    // Reading code... (send lba bits, set start/stop bit, etc)
+void printPRDTFromDrive(uint8_t drive) {
+    uint8_t channel = ide_devices[drive].channel;
+    uint16_t base_port = channels[channel].bmide;
+    PRD* prdt = (PRD*)(uintptr_t)inl(base_port+4);
+    kprintf("prdt: 0x%x\n", prdt);
+    kprintf("prdt[0].address: 0x%x\n", prdt[0].address);
+    kprintf("prdt[0].byte_count: 0x%x\n", prdt[0].byte_count);
+    kprintf("prdt[0].reserved: 0x%x\n", prdt[0].reserved);
 }
 
-void ataSetPrdt() {
+void ideSendPRDT(uint8_t drive, uint32_t prdt_addr) {
    // Set bus master prdt register 
+    uint8_t channel = ide_devices[drive].channel;
+    uint16_t base_port = channels[channel].bmide;
+    outl(base_port + 4, prdt_addr);
+    uint32_t set_prdt = inl(base_port+4);
+    if(set_prdt != prdt_addr)
+        kprintf("ERROR setting PRDT on drive %d, BMIDE: 0x%x\n", drive, base_port);
+}
+
+// Reads from ATA drive using DMA.
+// Returns the address where to find the data after the transfer
+uintptr_t ataReadDMA(uint8_t drive, uint32_t size, uint32_t lba){
+
+    if (size > 1024*64){
+        kprintf("Size too big for current implementation\n");
+        return (uintptr_t)NULL;
+    }
+
+    uint8_t poll_err = 0;
+    if((poll_err = ide_polling(ide_devices[drive].channel, 0)))
+        kprintf("Polling Error: %d\n", poll_err); 
+
+    // TODO: Check if device supports DMA, for now we assume that is does
+
+    uint16_t num_sects = size/512;
+    uint8_t channel = ide_devices[drive].channel;
+    uint16_t base_port = channels[channel].bmide;
+    // Clear Bit 0, (stop any DMA transfers)
+    uint8_t oldDMA = inb(base_port + 0x0);
+    outb(base_port + 0x0, oldDMA & ~(1));
+
+
+//    PRD* localPrdt = (PRD*)kheapAlignedAlloc(1024*64, 1024*64);
+     //1. Prepare a PRDT in system memory
+    test_prd.address = (uintptr_t)dmaArray;
+    test_prd.byte_count = size;
+    test_prd.reserved = 0x8000;
+    prdt[0].address = (uintptr_t)dmaArray;
+    prdt[0].byte_count = size; 
+    prdt[0].reserved = 0x8000; // This would be reserved, but since 
+                               // it is the last PRD entry, the MSB is set
+    
+    //2. Send the physical PRDT address to the Bus Master PRDT Register
+    kprintf("&prdt[0]: 0x%x\n", &prdt[0]);
+    kprintf("prdt: 0x%x\n", prdt);
+    kprintf("&test_prd: 0x%x\n", test_prd);
+    kprintf("&dmaArray: 0x%x\n", dmaArray);
+    ideSendPRDT(drive, &test_prd);
+    printPRDTFromDrive(drive);
+
+    //3. Set the direction of the transfer, clear the RW bit in
+    //   Bus Master Command Register
+    uint8_t old_cr = inb(base_port);
+    outb(base_port + 0x0, (inb(base_port + 0x0) & ~(1<<3))); // Read, clear RW bit 
+    if(inb(base_port) != (old_cr & ~(1<<3)))
+        kprintf("ERROR setting Bus Master Command Register\n");
+
+    //4. Clear the Error and Interrupt bit in the BM Status Register
+    //   The bits are cleared by writing '1' to it...why????
+    uint8_t old_sr = inb(base_port + 2);
+    outb(base_port + 0x2, inb(base_port+2) | (4 | 2)); // Clear the error bit in the status register 
+    if( inb(base_port+2) != (old_sr & ~(4|2)) )
+        kprintf("ERROR setting Bus Master Status Register\n");
+
+    //5. Select the Drive
+    uint8_t lba_mode = 0;
+    uint8_t lba_io[6];
+    uint16_t cyl;
+    uint8_t sect, head;
+	if (lba >= 0x10000000) { // LBA 48 is the only one accessible here
+        //kprintf("LBA48 mode\n");
+		lba_mode = 2;
+		lba_io[0] = (lba & 0x000000FF) >> 0;
+		lba_io[1] = (lba & 0x0000FF00) >> 8;
+		lba_io[2] = (lba & 0x00FF0000) >> 16;
+		lba_io[3] = (lba & 0xFF000000) >> 24;
+		lba_io[4] = 0; // We are only a 32-bit system 
+		lba_io[5] = 0; // We are only a 32-bit system 
+		head 	  = 0; // Lower 4-bits of HDDEVSEL are not used here
+	} else if (ide_devices[drive].capabilities & 0x200) { // Drive supports LBA?
+		// LBA28:
+        //kprintf("LBA28 mode\n");
+		lba_mode = 1;
+		lba_io[0] = (lba & 0x000000FF) >> 0;
+		lba_io[1] = (lba & 0x0000FF00) >> 8;
+		lba_io[2] = (lba & 0x00FF0000) >> 16;
+		lba_io[3] = 0; // These registers are not used here
+		lba_io[4] = 0; // These registers are not used here
+		lba_io[5] = 0; // These registers are not used here
+		head 	  = (lba & 0xF0000000) >> 24; 
+    }else { // CHS
+		lba_mode  = 0;
+		sect 	  = (lba % 63) + 1;
+		cyl		  = (lba + 1 - sect) / (16 * 63);
+		lba_io[0] = sect;
+		lba_io[1] = (cyl >> 0) & 0xFF;
+		lba_io[2] = (cyl >> 8) & 0xFF;
+		lba_io[3] = 0; 
+		lba_io[4] = 0; 
+		lba_io[5] = 0; 
+		// Head number is writted to HDDEVSEL lower 4-bits
+		head 	  = (lba + 1 - sect) % (16 * 63) / (63); 
+	}
+
+	uint32_t slave_bit = ide_devices[drive].drive;
+    // Selecting drive here.
+    ideWrite(channel, ATA_REG_HDDEVSEL, 0xE0 | (slave_bit << 4) | head);
+    if((poll_err = ide_polling(ide_devices[drive].channel, 0)))
+        kprintf("Polling Error: %d\n", poll_err); 
+
+    //6. Send the LBA and sector count to respective ports
+	if (lba_mode == 2) {
+		ideWrite(channel, ATA_REG_SECCOUNT1, 0);
+		ideWrite(channel, ATA_REG_LBA3, lba_io[3]);
+		ideWrite(channel, ATA_REG_LBA4, lba_io[4]);
+		ideWrite(channel, ATA_REG_LBA5, lba_io[5]);
+	}
+	ideWrite(channel, ATA_REG_SECCOUNT0, num_sects);
+	ideWrite(channel, ATA_REG_LBA0, lba_io[0]);
+	ideWrite(channel, ATA_REG_LBA1, lba_io[1]);
+	ideWrite(channel, ATA_REG_LBA2, lba_io[2]);
+    ide_polling(ide_devices[drive].channel, 1);
+
+    //7. Send the DMA transfer command to ATA controller
+   ideWrite(channel, ATA_REG_COMMAND, ATA_CMD_READ_DMA);
+    if((poll_err = ide_polling(ide_devices[drive].channel, 0)))
+        kprintf("Polling Error: %d\n", poll_err); 
+
+    //8. Set Start/Stop bit (bit 0) in BMCR
+    uint8_t old = inb(base_port + 0);
+    outb(base_port, old | 1);
+
+    uint8_t sr = inb(base_port+2);
+    uint8_t active = sr & 1;
+    uint8_t interrupt = (sr & 1<<2)>>2;
+
+
+
+    while(active && !interrupt){
+        kprintf("Waiting..., sr: 0x%x\n", sr);
+        sr = inb(base_port+2);
+        active = sr & 1;
+        interrupt = (sr & 1<<2)>>2;
+    }
+    kprintf("SR after transfer, active: 0x%x, interrupt: 0x%x\n", active, interrupt);
+
+    if((poll_err = ide_polling(ide_devices[drive].channel, 0)))
+        kprintf("Polling Error: %d\n", poll_err); 
+    
+    outb(base_port+2, 4);
+    uint8_t err = inb(base_port+2)&2;
+    if(err != 0)
+        kprintf("ERROR with DMA read\n");
+    err = inb(channels[ide_devices[drive].channel].base + 7) & 1;
+    if(err != 0)
+        kprintf("ERROR with drive read, sr: 0x%x\n", err);
+
+   return prdt[0].address;
+}
+
+void ideIRQHandler() {
+    //1. Reset the Start/Stop bit
+    //2. Read controller and drive status to determine if successful
+    //3. Set flag to say transfer complete
+
+    kprintf("Done DMA Transfer!!!!!!!!!!!!!\n");
+    uint8_t channel = ide_devices[0].channel;
+    uint16_t base_port = channels[channel].bmide;
+
+    uint8_t oldDMA = inb(base_port + 0x0);
+    outb(base_port + 0x0, oldDMA & ~(1));
 }
 
 void ata_test (){
-	uint8_t bytes[512];
-	uint8_t read[512];
-	for(int i = 0; i < 512; i++) read[i] = 0x00;
-	for(int i = 0; i < 512; i++) bytes[i] = 0x00;
-    char* str = "Hello there paulio";
-    kstrcpy((char*)bytes, str);
+    uint8_t drive = 0;
+    uint8_t channel = ide_devices[drive].channel;
+    kprintf("Drive: %d, Channel: %d, BMIDE: 0x%x\n",drive, channel, channels[channel].bmide);
+    char write[512*4] = "WOOOOO";
+    ideWriteSectors(0, 4, 512*4, write); 
+    char read[512*4];
+    kmemset(read, 0, sizeof(read));
+    ideReadSectors(0, 4, 512*4, read);
+    kprintf("should be: %s\n", read);
 
-	uint8_t err = ideWriteSectors(0, 1, 512*8, (char*)bytes);
-	if(err == 0)
-		kprintf("no write errors\n");
-	err = ideReadSectors(0, 1, 512*8, (char*)read);
-	if(err == 0) {
-		kprintf("no read errors\n");
-        kprintf("%s\n", (char*)read);
-        kprintf("\n");
-    }
-
+    kmemset(read, 0, sizeof(read));
+    uintptr_t addr = ataReadDMA(0, 512*4, 512*4); 
+    if(addr == NULL) return;
+    kprintf("Reading from address\n");
+    kprintf("Read: %s\n", (char*)addr);
 }
 

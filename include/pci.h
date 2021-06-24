@@ -19,6 +19,8 @@ struct pci_device {
 	uint8_t  latency_timer;
    	uint8_t  header_type;
 	uint8_t  bist;
+    uint8_t  interrupt_pin;
+    uint8_t  interrupt_line;
 };
 
 typedef struct pci_device PCIDevice;

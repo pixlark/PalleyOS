@@ -154,7 +154,9 @@ struct PRD {
 typedef struct PRD PRD;
 
 void ata_test();
-void ide_initialize(uint32_t BAR0,uint32_t BAR1,uint32_t BAR2,uint32_t BAR3,uint32_t BAR4);
+void ide_initialize(uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3, uint32_t BAR4);
 uint8_t ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
 uint8_t ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
+
+void ideIRQHandler();
 

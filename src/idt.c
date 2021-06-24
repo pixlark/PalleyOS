@@ -245,6 +245,9 @@ extern void TimerIRQ();
 // Keyboard Input (PC/2)
 extern void keyboardIsr(void);
 
+// Ide Controller DMA IRQ
+extern void ideIRQISR(void);
+
 void initPIC(int, int);
 
 /* ======== SETUP ======== */
@@ -275,8 +278,10 @@ void idtHandleSetup() {
 	addIsrToIdt(20, &virtIsr, 0, TRAP_GATE_32);
 
 	addIsrToIdt(0x20, &TimerIRQ, 0, INTERRUPT_GATE_32);
-	for(int i = 0x21; i < 0x20+16; i++)
-		addIsrToIdt(i, &keyboardIsr, 0, INTERRUPT_GATE_32);	
+    addIsrToIdt(0x21, &keyboardIsr, 0, INTERRUPT_GATE_32);	
+
+    addIsrToIdt(0x20 + 14, &ideIRQISR, 0, INTERRUPT_GATE_32);
+    addIsrToIdt(0x20 + 15, &ideIRQISR, 0, INTERRUPT_GATE_32);
 
 	idtLoad();
 

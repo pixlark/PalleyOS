@@ -76,14 +76,14 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     }
 
 	/* Init Timer and PIT */
-	//initPITTimer();
+	initPITTimer();
 
-	//loadCpuid();
-	//cpuidPrintVendor();
+	loadCpuid();
+	cpuidPrintVendor();
 
-	//pciCheckAllBuses();
+	pciCheckAllBuses();
 
-    //ata_test();
+    ata_test();
 
 	kShellStart();
 }
