@@ -29,6 +29,15 @@ void kheapInit() {
     root_node->allocated = false;
 }
 
+static HeapNode* createNode(void* place, size_t size, HeapNode* next, bool allocated) {
+    HeapNode* node = (HeapNode*) place;
+    node->magic_number = KHEAP_MAGIC;
+    node->size = size;
+    node->next_node = next;
+    node->allocated = allocated;
+    return node;
+}
+
 void* kheapAlloc(size_t size) {
     HeapNode* iter = root_node;
     while (iter != NULL) {
@@ -41,14 +50,13 @@ void* kheapAlloc(size_t size) {
             size_t space_remaining_after_allocation = iter->size - size;
             if (space_remaining_after_allocation > sizeof(HeapNode)) {
                 // Create a new node from this extra space
-                uint8_t* byte_ptr = (uint8_t*) NODE_TO_CONTENTS(iter);
-                byte_ptr += size;
-                HeapNode* next_node = (HeapNode*) byte_ptr;
-                next_node->magic_number = KHEAP_MAGIC;
-                next_node->size
-                    = space_remaining_after_allocation - sizeof(HeapNode);
-                next_node->next_node = iter->next_node;
-                next_node->allocated = false;
+                uint8_t* byte_ptr = ((uint8_t*) NODE_TO_CONTENTS(iter)) + size;
+                HeapNode* next_node = createNode(
+                    byte_ptr,
+                    space_remaining_after_allocation - sizeof(HeapNode),
+                    iter->next_node,
+                    false
+                );
                 // Rewrite current node
                 iter->size = size;
                 iter->next_node = next_node;
@@ -106,12 +114,12 @@ void* kheapRealloc(void* ptr, size_t size) {
         size_t size_delta = current_node->size - size;
         if (size_delta >= sizeof(HeapNode) + 1) {
             // If there's enough room, fill the space with a new, unallocated node
-            size_t new_node_size = size_delta - sizeof(HeapNode);
-            HeapNode* new_node = (HeapNode*) (NODE_TO_CONTENTS(current_node) + size);
-            new_node->magic_number = KHEAP_MAGIC;
-            new_node->size = new_node_size;
-            new_node->next_node = current_node->next_node;
-            new_node->allocated = false;
+            HeapNode* new_node = createNode(
+                NODE_TO_CONTENTS(current_node) + size,
+                size_delta - sizeof(HeapNode),
+                current_node->next_node,
+                false
+            );
 
             current_node->next_node = new_node;
             current_node->size = size;
@@ -132,12 +140,13 @@ void* kheapRealloc(void* ptr, size_t size) {
         size_t size_delta = possible_size - size;
         if (size_delta >= sizeof(HeapNode) + 1) {
             // Create a new node out of the extra space
-            HeapNode* new_node = (HeapNode*) (NODE_TO_CONTENTS(current_node) + size);
-            new_node->magic_number = KHEAP_MAGIC;
-            new_node->size = size_delta - sizeof(HeapNode);
-            new_node->next_node = iter;
-            new_node->allocated = false;
-
+            HeapNode* new_node = createNode(
+                NODE_TO_CONTENTS(current_node) + size,
+                size_delta - sizeof(HeapNode),
+                iter,
+                false
+            );
+            
             current_node->next_node = new_node;
             current_node->size = size;
 
