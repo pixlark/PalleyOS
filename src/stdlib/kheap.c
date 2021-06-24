@@ -38,43 +38,6 @@ static HeapNode* createNode(void* place, size_t size, HeapNode* next, bool alloc
     return node;
 }
 
-void* kheapAlloc(size_t size) {
-    HeapNode* iter = root_node;
-    while (iter != NULL) {
-        if (iter->magic_number != KHEAP_MAGIC) {
-            kprintf("Kernel heap was corrupted!\n");
-            while (true);
-        }
-        if (!iter->allocated && iter->size >= size) {
-            // Allocate!
-            size_t space_remaining_after_allocation = iter->size - size;
-            if (space_remaining_after_allocation > sizeof(HeapNode)) {
-                // Create a new node from this extra space
-                uint8_t* byte_ptr = ((uint8_t*) NODE_TO_CONTENTS(iter)) + size;
-                HeapNode* next_node = createNode(
-                    byte_ptr,
-                    space_remaining_after_allocation - sizeof(HeapNode),
-                    iter->next_node,
-                    false
-                );
-                // Rewrite current node
-                iter->size = size;
-                iter->next_node = next_node;
-                iter->allocated = true;
-            } else {
-                // Add this extra bit of dangling space to our current heap node
-                iter->allocated = true;
-            }
-            return NODE_TO_CONTENTS(iter);
-        }
-        // Otherwise
-        iter = iter->next_node;
-    }
-    // Didn't find any space!
-    kprintf("Kernel heap ran out of space!\n");
-    while (true);
-}
-
 static void compactHeap() {
     HeapNode* iter = root_node;
     while (iter != NULL) {
@@ -89,6 +52,116 @@ static void compactHeap() {
         }
         iter = iter->next_node;
     }
+}
+
+// Given a heap node with some empty, unaccounted-for space afterwards, either:
+//  a) Allocates a new node to manage this space with
+//  b) Consumes that space as part of this node, if there's not enough room for a new full node
+// You should run the heap compactor afterwards, to potentially
+// combine this new free space with what comes afterwards
+static void consumeEmptySpace(HeapNode* node) {
+    size_t unaccounted_space = ((uint8_t*) node->next_node) - ((uint8_t*) node) + node->size;
+    if (unaccounted_space > sizeof(HeapNode)) {
+        // Create a new node from this extra space
+        uint8_t* byte_ptr = ((uint8_t*) NODE_TO_CONTENTS(node)) + node->size;
+        HeapNode* new_node = createNode(
+            byte_ptr,
+            unaccounted_space - sizeof(HeapNode),
+            node->next_node,
+            false
+        );
+        // Rewrite current node
+        node->next_node = new_node;
+    } else {
+        // Add this extra bit of dangling space to our current heap node
+        node->size += unaccounted_space;
+    }
+}
+
+void* kheapAlloc(size_t size) {
+    // Locate free space
+    HeapNode* iter = root_node;
+    while (iter != NULL) {
+        if (iter->magic_number != KHEAP_MAGIC) {
+            kprintf("Kernel heap was corrupted!\n");
+            while (true);
+        }
+        if (!iter->allocated && iter->size >= size) {
+            break;
+        }
+        // Otherwise
+        iter = iter->next_node;
+    }
+
+    if (iter == NULL) {
+        // Didn't find any space!
+        kprintf("Kernel heap ran out of space!\n");
+        while (true);
+    }
+
+    iter->size = size;
+    iter->allocated = true;
+
+    consumeEmptySpace(iter);
+    compactHeap();
+
+    return NODE_TO_CONTENTS(iter);
+}
+
+void* kheapAlignedAlloc(size_t size, size_t alignment) {
+    HeapNode* iter = root_node;
+    HeapNode* chosen;
+    while (iter != NULL) {
+        if (iter->magic_number != KHEAP_MAGIC) {
+            kprintf("Kernel heap was corrupted!\n");
+            while (true);
+        }
+        // Is this node a candidate for allocation?
+        if (!iter->allocated && iter->size >= sizeof(HeapNode) + size) {
+            uintptr_t first_byte_addr = (uintptr_t) NODE_TO_CONTENTS(iter);
+            uintptr_t offset = alignment - (first_byte_addr % alignment);
+            if (offset == alignment) {
+                // If we're already on a boundary, don't offset
+                offset = 0;
+            }
+            kprintf("offset: %u, alignment: %u, first_byte_addr: %x\n", offset, alignment, first_byte_addr);
+            if (iter->size - offset < sizeof(HeapNode) + size) {
+                // Not enough room when accounting for offset!
+                iter = iter->next_node;
+                continue;
+            }
+            chosen = (HeapNode*) (first_byte_addr + offset);
+            break;
+        }
+        // Otherwise
+        iter = iter->next_node;
+    }
+
+    if (iter == NULL) {
+        // Didn't find any space!
+        kprintf("Kernel heap ran out of space!\n");
+        while (true);
+    }
+
+    // Allocate!
+    HeapNode* preceding_node = iter;
+    // - Paul Tilley, 20:27 Wednesday 23 June 2021 -
+    //   `chosen` is guaranteed to start after the end of preceding_node's header
+    //   So there's a chance that preceding_node is left with zero remaining space
+    //   This is fine, it's not allocated anyway so it should get cleaned up by the heap compactor
+    createNode(
+        chosen,
+        size,
+        preceding_node->next_node,
+        true
+    );
+    preceding_node->size = ((size_t) (((uint8_t*) chosen) - ((uint8_t*) preceding_node))) - sizeof(HeapNode);
+    preceding_node->next_node = chosen;
+
+    consumeEmptySpace(chosen);
+    compactHeap();
+
+    return NODE_TO_CONTENTS(chosen);
 }
 
 // Performs a reallocation, but makes the operation more efficient in
@@ -169,6 +242,10 @@ void* kheapRealloc(void* ptr, size_t size) {
 
 void kheapFree(void* ptr) {
     HeapNode* node = CONTENTS_TO_NODE(ptr);
+    if (node->magic_number != KHEAP_MAGIC) {
+        kprintf("Passed bad pointer to kheapFree!\n");
+        while (true);
+    }
     node->allocated = false;
     compactHeap();
 }
@@ -176,7 +253,7 @@ void kheapFree(void* ptr) {
 void kheapDump() {
     HeapNode* iter = root_node;
     while (iter != NULL) {
-        kprintf("Node (%x):\n  Magic: %x\n  Next: %x\n  Size: %d\n  Alloc: %s\n", iter, iter->magic_number, iter->next_node, iter->size, iter->allocated ? "yes" : "no");
+        kprintf("Node (%x):\n  Magic: %x\n  Next: %x\n  Size: %u\n  Alloc: %s\n", iter, iter->magic_number, iter->next_node, iter->size, iter->allocated ? "yes" : "no");
         iter = iter->next_node;
     }
 }

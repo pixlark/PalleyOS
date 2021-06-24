@@ -90,7 +90,7 @@ run-bin: $(DIRS) $(BUILD_DIR)/palleyos.iso
 run-server: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-m 256M \
-		-cdrom $(BUILD_DIR)/palleyos.iso
+		-cdrom $(BUILD_DIR)/palleyos.iso \
 		-drive format=raw,file=./palleyos.img \
 		-s -S
 

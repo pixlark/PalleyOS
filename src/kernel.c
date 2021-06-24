@@ -69,6 +69,10 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
         testRealloc(100);
         kprintf("=== DECREASING ALLOCATION ===\n");
         testRealloc(-50);
+
+        kprintf("=== ALIGNED ALLOCATION ===\n");
+        kheapAlignedAlloc(100, 512);
+        kheapDump();
     }
 
 	/* Init Timer and PIT */
