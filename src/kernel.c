@@ -25,6 +25,16 @@
 #error "must use x86"
 #endif
 
+void testRealloc(int change) {
+    void* ptr = kheapAlloc(100);
+    kprintf("  = BEFORE =\n");
+    kheapDump();
+    ptr = kheapRealloc(ptr, 100 + change);
+    kprintf("  = AFTER =\n");
+    kheapDump();
+    kheapFree(ptr);
+}
+
 void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     // Get RAM info from GRUB
     if (magic != 0x2BADB002) {
@@ -50,16 +60,26 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     setupPaging();
 
     kheapInit();
+    
+    {
+        // Test heap
+        kprintf("=== SAME SIZE ALLOCATION ===\n");
+        testRealloc(0);
+        kprintf("=== INCREASING ALLOCATION ===\n");
+        testRealloc(100);
+        kprintf("=== DECREASING ALLOCATION ===\n");
+        testRealloc(-50);
+    }
 
 	/* Init Timer and PIT */
-	initPITTimer();
+	//initPITTimer();
 
-	loadCpuid();
-	cpuidPrintVendor();
+	//loadCpuid();
+	//cpuidPrintVendor();
 
-	pciCheckAllBuses();
+	//pciCheckAllBuses();
 
-    ata_test();
+    //ata_test();
 
 	kShellStart();
 }
