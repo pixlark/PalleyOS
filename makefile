@@ -1,6 +1,6 @@
 CC=i686-elf-gcc
 AS=i686-elf-as
-FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g -std=c99
+FLAGS=-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g -std=c99 -Wno-unused-function
 QEMU_FLAGS=-m 64M -cdrom $(BUILD_DIR)/palleyos.iso
 
 SRC_DIR=src
@@ -11,32 +11,24 @@ STD_LIB_DIR=stdlib
 TIMER_DIR=timer
 
 OBJ_DIR=obj
-OBJS= \
-	$(OBJ_DIR)/ata.o                     \
-	$(OBJ_DIR)/ata_helper.o              \
-	$(OBJ_DIR)/boot.o                    \
-	$(OBJ_DIR)/cpuid.o                   \
-	$(OBJ_DIR)/cpuid_fetch.o             \
-	$(OBJ_DIR)/fadt.o                    \
-	$(OBJ_DIR)/gdt.o                     \
-	$(OBJ_DIR)/idt.o                     \
-	$(OBJ_DIR)/isr.o                     \
-	$(OBJ_DIR)/k_term_proc.o             \
-	$(OBJ_DIR)/kernel.o                  \
-	$(OBJ_DIR)/keyboard_io.o             \
-	$(OBJ_DIR)/memory.o                  \
-	$(OBJ_DIR)/pci.o                     \
-	$(OBJ_DIR)/pic.o                     \
-	$(OBJ_DIR)/sknyfs.o                  \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kheap.o    \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdio.o   \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/kstdlib.o  \
-	$(OBJ_DIR)/$(STD_LIB_DIR)/tio.o      \
-	$(OBJ_DIR)/$(TIMER_DIR)/PIT.o        \
-	$(OBJ_DIR)/$(TIMER_DIR)/sleep.o      \
-	$(OBJ_DIR)/$(TIMER_DIR)/timer.o
+OBJ_DIRS := $(patsubst %, $(OBJ_DIR)/%, timer stdlib)
+DIRS = $(OBJ_DIR) \
+	   $(ISO_DIR) \
+	   $(OBJ_DIRS)
 
-all: $(BUILD_DIR)/palleyos.iso
+# Recursive wildcard search
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
+dirfiles:= $(call rwildcard,src,*.c *.s)
+files:= $(foreach f, $(dirfiles), $(subst src,$(OBJ_DIR),$(f))) # Change the src/ to obj/ in all found .c and .s files
+OBJSC = $(files:.c=.o)   # Change .c to .o
+OBJS = $(patsubst %.s,%.o,$(OBJSC))  # Change .s to .o
+
+all: $(DIRS) $(BUILD_DIR)/palleyos.iso
+
+$(DIRS):
+	mkdir -p $@
+	echo $@
 
 $(BUILD_DIR)/palleyos.iso: $(BUILD_DIR)/palleyos.bin
 	@make --silent make-$(ISO_DIR)
@@ -51,26 +43,21 @@ $(BUILD_DIR)/palleyos.bin: $(OBJS) $(SRC_DIR)/linker.ld
 	@./check_multiboot.sh
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@make --silent make-$(OBJ_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
-	@make --silent make-$(OBJ_DIR)
 	$(AS) $< -o $@
 
-$(OBJ_DIR)/$(TIMER_DIR)/%.o: $(SRC_DIR)/$(TIMER_DIR)/%.c
-	@make --silent make-$(TIMER_DIR)
+$(OBJ_DIR)/$(TIMER_DIR)/%.o: $(SRC_DIR)/$(TIMER_DIR)/%.c make-$(TIMER_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
-$(OBJ_DIR)/$(TIMER_DIR)/%.o: $(SRC_DIR)/$(TIMER_DIR)/%.s
-	@make --silent make-$(TIMER_DIR)
+$(OBJ_DIR)/$(TIMER_DIR)/%.o: $(SRC_DIR)/$(TIMER_DIR)/%.s make-$(TIMER_DIR)
 	$(AS) $< -o $@
 
-$(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c
-	@make --silent make-$(STD_LIB_DIR)
+$(OBJ_DIR)/$(STD_LIB_DIR)/%.o: $(SRC_DIR)/$(STD_LIB_DIR)/%.c make-$(STD_LIB_DIR)
 	$(CC) -c $< -o $@ $(FLAGS)
 
-.PHONY: run run-bin run-server clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR)
+.PHONY: run run-bin run-server clean make-$(OBJ_DIR) make-$(BUILD_DIR) make-$(ISO_DIR) make-$(STD_LIB_DIR) make-$(TIMER_DIR) file1
 
 make-$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -87,21 +74,21 @@ make-$(STD_LIB_DIR):
 make-$(TIMER_DIR):
 	@mkdir -p obj/$(TIMER_DIR)
 
-run: $(BUILD_DIR)/palleyos.iso
+run: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-boot d \
 		-m 256M \
 		-cdrom $(BUILD_DIR)/palleyos.iso \
 		-drive format=raw,file=./palleyos.img
 
-run-bin: $(BUILD_DIR)/palleyos.iso
+run-bin: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-boot d \
 		-m 256M \
 		-kernel $(BUILD_DIR)/palleyos.bin \
 		-drive format=raw,file=./palleyos.img
 
-run-server: $(BUILD_DIR)/palleyos.iso
+run-server: $(DIRS) $(BUILD_DIR)/palleyos.iso
 	qemu-system-i386 \
 		-m 256M \
 		-cdrom $(BUILD_DIR)/palleyos.iso \
@@ -110,3 +97,6 @@ run-server: $(BUILD_DIR)/palleyos.iso
 
 clean:
 	rm -rf $(OBJ_DIR) $(ISO_DIR) $(BUILD_DIR)
+
+file1:
+	echo $(OBJS)

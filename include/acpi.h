@@ -14,6 +14,8 @@ struct RSDPDescriptor {
 	uint32_t rsdt_address; // $$ Money $$
 } __attribute__((__packed__));
 
+typedef struct RSDPDescriptor RSDPDescriptor;
+
 /* ===== System Descripton Table ===== */
 // There are many types of SDT's, the 1st part is this header,
 // which is common to all SDT's
@@ -28,6 +30,7 @@ struct ACPISDTHeader {
 	uint32_t creator_id;
 	uint32_t creator_revision;
 };
+typedef struct ACPISDTHeader ACPISDTHeader;
 
 /* ===== Root System Description Table ===== */
 // This contains pointers to all the other SDT's
@@ -40,6 +43,7 @@ struct RSDT {
 	// num entries: (header.length - sizeof(header)) / 4
 	uint32_t ptrs_to_other_sdts[];
 };
+typedef struct RSDT RSDT;
 
 /* ===== Fixed ACPI Description Table (FADT) ===== */
 // Is pointed to by an entry in the RSDT. the signature is "FACP"
@@ -120,5 +124,5 @@ struct FADT {
 	// There is some other stuff here in the extended version,
 	// but it is 64-bit stuff, so I assume that we won't/can't use it.
 };
-
+typedef struct FADT FADT;
 

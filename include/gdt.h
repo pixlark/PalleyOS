@@ -4,5 +4,5 @@
 #include <stdint.h>
 #include <stddef.h>
 
-void setup_gdt();
+void gdtInit();
 #endif

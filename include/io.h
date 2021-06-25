@@ -42,17 +42,17 @@ static inline uint32_t inl(uint16_t port) {
 	return ret;
 }
 
-static inline void io_wait(void) {
+static inline void ioWait(void) {
 	__asm volatile ( "jmp 1f\n\t"
 					"1: jmp 2f\n\t"
 					"2:" );
 }
 
-static inline void disable_interrupts() {
+static inline void cli() {
 	__asm volatile ("cli");
 }
 
-static inline void enable_interrupts() {
+static inline void sti() {
 	__asm volatile ("sti");
 }
 

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 void add_sleep_timer(uint32_t time, void (*cb)());
-void init_PIT_timer();
+void initPITTimer();
 
 void set_PIT_count(uint16_t count);
 uint16_t read_PIT_count(void);

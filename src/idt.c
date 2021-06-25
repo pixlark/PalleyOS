@@ -50,12 +50,12 @@ struct IDTInfo {
 } __attribute__((packed));
 
 // Located in boot.s
-extern void load_idt(void);
+extern void idtLoad(void);
 
 struct IDTEntry idt_entries[256];
 struct IDTInfo idt_info;
 
-bool add_isr_to_idt(int num, void (*func_ptr)(), int desc_level, int gate_type){
+bool addIsrToIdt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 	if(num < 0) {
 		return false;	
 	}
@@ -77,7 +77,7 @@ bool add_isr_to_idt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 	return true;
 }
 
-void IRQ_set_mask(uint8_t irq_line) {
+void irqSetMask(uint8_t irq_line) {
 	uint16_t port;
 	uint8_t value;
 
@@ -91,7 +91,7 @@ void IRQ_set_mask(uint8_t irq_line) {
 	outb(port, value);
 }
 
-void IRQ_clear_mask(uint8_t irq_line) {
+void irqClearMask(uint8_t irq_line) {
     uint16_t port;
     uint8_t value;
  
@@ -107,84 +107,84 @@ void IRQ_clear_mask(uint8_t irq_line) {
 
 /* ===== EXCEPTIONS ===== */
 // Divide by Zero (Fault) (0)
-extern void div_by_zero_isr(void);
-void div_by_zero_handler() {
+extern void divByZeroIsr(void);
+void divByZeroHandler() {
 	kprintf("Divide By Zero Fault\n");
 	while(true);
 }
 
 // Debug (Fault/Trap) (1)
-extern void debug_isr(void);
-void debug_handler() {
+extern void debugIsr(void);
+void debugHandler() {
 	kprintf("Debug Fault/Trap\n");
 	while(true);
 }
 
 // Breakpoint (Trap) (3)
-extern void breakpoint_isr(void);
-void breakpoint_handler() {
+extern void breakpointIsr(void);
+void breakpointHandler() {
 	kprintf("Breakpoint Trap\n");
 	while(true);
 }
 
 // Overflow (Trap) (4)
-extern void overflow_isr(void);
-void overflow_handler() {
+extern void overflowIsr(void);
+void overflowHandler() {
 	kprintf("Overflow occured\n");
 }
 
 // Bound Range Exceeded Fault (5)
-extern void bound_range_isr();
-void bound_range_exceeded_handler(){
+extern void boundRangeIsr();
+void boundRangeExceededHandler(){
 	kprintf("Out of bounds fault\n");
 	while(true);
 }
 
 // Invalid Opcode Fault (6)
-extern void invalid_opcode_isr(void);
-void invalid_opcode_handler() {
+extern void invalidOpcodeIsr(void);
+void invalidOpcodeHandler() {
 	kprintf("Invalid Opcode!\n");
 	while(true);
 }
 
 // Device Not Available Fault (7)
-extern void device_na_isr(void);
-void device_na_handler() {
+extern void deviceNAIsr(void);
+void deviceNAHandler() {
 	kprintf("Device Not Available Fault\n");
 	while(true);
 }
 
 // Double Fault (Abort) (8)
-extern void double_fault_isr();
-void double_fault_handler() {
+extern void doubleFaultIsr();
+void doubleFaultHandler() {
 	kprintf("Double fault\n");
 	while(true);
 }
 
 // Invalid TSS Fault (10)
-extern void invalid_tss_isr();
-void invalid_tss_handler(uint32_t err) {
+extern void invalidTSSIsr();
+void invalidTSSHandler(uint32_t err) {
 	kprintf("Invalid TSS Fault, error code: %d\n", err);
 	while(true);	
 }
 
 // Segment Not Present Fault (11)
-extern void seg_not_pres_isr();
-void seg_not_pres_handler(uint32_t err) {
+extern void segNotPresIsr();
+void segNotPresHandler(uint32_t err) {
 	kprintf("Segment Not Present Fault, error code: %d\n", err);	
 	while(true);
 }
 
 // Stack Segment Fault (12)
-extern void stack_seg_isr();
-void stack_seg_handler(uint32_t err) {
+extern void stackSegIsr();
+void stackSegHandler(uint32_t err) {
 	kprintf("Stack Segmentation Fault, error code: %d\n", err);	
 	while(true);
 }
 
 // General Protection Fault (13)
-extern void general_prot_fault_isr();
-void general_prot_fault_handler(uint32_t err) {
+extern void generalProtFaultIsr();
+void generalProtFaultHandler(uint32_t err) {
 	kprintf("General Protection Fault, error code: 0b%b\n", err);
 	kprintf("Table: %s, Selector Index: %d\n", 
 			(const char*[]){"GDT", "IDT", "LDT", "IDT"}[(err&0x6)>>1], (err & ~(7))>>3);
@@ -192,47 +192,47 @@ void general_prot_fault_handler(uint32_t err) {
 }
 
 // Page Fault (14)
-extern void page_fault_isr();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+extern void pageFaultIsr();
 extern void handle_page_fault();
-// Stack
-// err
-// iret = the place where we messed up
-void page_fault_handler(uint32_t err) {
+void pageFaultHandler(uint32_t err) {
     // TODO(Paul): Check error code for error type
     handle_page_fault();
 }
+#pragma GCC diagnostic push
 
 // x87 Floating-Point Exception (Fault) (16)
-extern void fpe_isr();
-void fpe_handler() {
+extern void fpeIsr();
+void fpeHandler() {
 	kprintf("x87 Floating Point Exception (Fault)\n");
 	while(true);	
 }
 
 // Alignment Check Fault (17) 
-extern void align_check_isr();
+extern void alignCheckIsr();
 void align_check_handler(uint32_t err) {
 	kprintf("Alignment Check Fault, error code: %d\n", err);
 	while(true);	
 }
 
 // Machine Check (18)
-extern void machine_check_isr();
+extern void machineCheckIsr();
 void machine_check_handler() {
 	kprintf("Machine Check (Abort)");
 	while(true);	
 }
 
 // SIMD Floating point Exception (Fault) (19)
-extern void simd_fpe_isr();
-void simd_fpe_handler() {
+extern void simdFpeIsr();
+void simdFpeHandler() {
 	kprintf("SIMD Floating point Exception (Fault)");
 	while(true);	
 }
 
 // Virtualization Exception (20)
-extern void virt_isr();
-void virt_handler() {
+extern void virtIsr();
+void virtHandler() {
 	kprintf("Virtualization Exception (Fault)\n");
 	while(true);	
 }
@@ -243,48 +243,48 @@ void virt_handler() {
 extern void TimerIRQ();
 
 // Keyboard Input (PC/2)
-extern void keyboard_isr(void);
+extern void keyboardIsr(void);
 
-void init_PIC(int, int);
+void initPIC(int, int);
 
 /* ======== SETUP ======== */
-void handle_idt_setup() {
-	disable_interrupts();
-	init_PIC(0x20, 0x28);
+void idtHandleSetup() {
+	cli();
+	initPIC(0x20, 0x28);
 
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.offset = (uint32_t) &idt_entries;
 
-	add_isr_to_idt(0, &div_by_zero_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(1, &debug_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(3, &breakpoint_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(4, &overflow_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(5, &bound_range_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(6, &invalid_opcode_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(7, &device_na_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(8, &double_fault_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(10, &invalid_tss_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(11, &seg_not_pres_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(12, &stack_seg_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(13, &general_prot_fault_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(14, &page_fault_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(16, &fpe_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(17, &align_check_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(18, &machine_check_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(19, &simd_fpe_isr, 0, TRAP_GATE_32);
-	add_isr_to_idt(20, &virt_isr, 0, TRAP_GATE_32);
+	addIsrToIdt(0, &divByZeroIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(1, &debugIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(3, &breakpointIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(4, &overflowIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(5, &boundRangeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(6, &invalidOpcodeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(7, &deviceNAIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(8, &doubleFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(10, &invalidTSSIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(11, &segNotPresIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(12, &stackSegIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(13, &generalProtFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(14, &pageFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(16, &fpeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(17, &alignCheckIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(18, &machineCheckIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(19, &simdFpeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(20, &virtIsr, 0, TRAP_GATE_32);
 
-	add_isr_to_idt(0x20, &TimerIRQ, 0, INTERRUPT_GATE_32);
+	addIsrToIdt(0x20, &TimerIRQ, 0, INTERRUPT_GATE_32);
 	for(int i = 0x21; i < 0x20+16; i++)
-		add_isr_to_idt(i, &keyboard_isr, 0, INTERRUPT_GATE_32);	
+		addIsrToIdt(i, &keyboardIsr, 0, INTERRUPT_GATE_32);	
 
-	load_idt();
+	idtLoad();
 
 	outb(PIC1_DATA, 0xFC);
 	outb(PIC2_DATA, 0xFF);
 
 	kprintf("idt_entries loc: 0x%x\n", idt_entries);
-	enable_interrupts();
+	sti();
 }
 
 /*
@@ -296,33 +296,33 @@ void handle_idt_setup() {
  offset2 - vector offset for master PIC
  		vectors on the slave PIC will become offset2..offset2+7
 */
-void init_PIC(int offset1, int offset2) {
+void initPIC(int offset1, int offset2) {
 	// Save Masks
 	outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); // Start init sequence
-	io_wait();
+	ioWait();
 	outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-	io_wait();
+	ioWait();
 
 	/* The init sequence looks for three other "configuration commands"
 	   Basically just reads three more bytes */
 
 	outb(PIC1_DATA, offset1);	// ICW2: Master PIC vector offset
-	io_wait();
+	ioWait();
 
 	outb(PIC2_DATA, offset2);	// ICW2: Slave PIC vector offset
-	io_wait();
+	ioWait();
 
 	outb(PIC1_DATA, 4); 		// ICW3: tell Master PIC that there
 								// is a slave PIC at IRQ2 (0000 0100)
-	io_wait();
+	ioWait();
 
 	outb(PIC2_DATA, 2);			// ICW3: Tell slave PIC its cascade identity
-	io_wait();
+	ioWait();
 
 	outb(PIC1_DATA, ICW4_8086);	// ICW4: tells other info about the environment
-	io_wait();
+	ioWait();
 	outb(PIC2_DATA, ICW4_8086);
-	io_wait();
+	ioWait();
 
 	outb(PIC1_DATA, 0xFC);
 	outb(PIC2_DATA, 0xFF);

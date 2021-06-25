@@ -1,3 +1,7 @@
+/*
+ * The Global Descriptor Table (GDT) is specific to the IA32 Architecture. It contains entries which tell the CPU
+ * about memory segments
+ */
 #include <stddef.h>
 #include <stdint.h>
 
@@ -13,16 +17,21 @@ struct GDTEntry {
    uint8_t  base_high;
 } __attribute__((packed));
 
-struct gdt_ptr {
+typedef struct GDTEntry GDTEntry;
+
+struct GDTPtr {
 	uint16_t limit;
 	uint32_t base;
 }__attribute__((packed));
 
-extern void gdt_flush();
-struct GDTEntry GDT[3];
-struct gdt_ptr gp;
+typedef struct GDTPtr GDTPtr;
 
-void gdt_set_gate(int num, uint32_t base, uint32_t limit,
+extern void gdtFlush();
+struct GDTEntry GDT[3];
+GDTPtr gp;
+
+// Sets an entry in the GDT
+void gdtSetGate(int num, uint32_t base, uint32_t limit,
 						   uint8_t access, uint8_t gran) {
 	/* Set up descriptor base address */
 	GDT[num].base_low = (base & 0xffff);
@@ -39,12 +48,11 @@ void gdt_set_gate(int num, uint32_t base, uint32_t limit,
 }
 
 
-void setup_gdt() {
-	// Sets flat segments that span all of memory
+void gdtInit() {
 	// TODO: Change so half of memory is for kernel, other half for user
 
-	/* NULL Descriptor */
-	gdt_set_gate(0, 0, 0, 0, 0);
+    // The first entry must be NULL
+	gdtSetGate(0, 0, 0, 0, 0);
 
 	/* Base Adress: 0
 	 * Limit is 4GiB
@@ -52,19 +60,19 @@ void setup_gdt() {
 	 * Uses 32-bit opcodes
 	 * Code Segment Descriptor
 	 */
-	gdt_set_gate(1, 0, 0xffffffff, 0x9A, 0xCF); 
+	gdtSetGate(1, 0, 0xffffffff, 0x9A, 0xCF); 
 
 	/* Data Segment Descriptor
 	 * Same as above but descriptor type is DS
 	 */
-	gdt_set_gate(2, 0, 0xffffffff, 0x92, 0xCF);
+	gdtSetGate(2, 0, 0xffffffff, 0x92, 0xCF);
 
 	kprintf("GDT loc: 0x%x\n", &GDT);
 
 	gp.limit = (sizeof(struct GDTEntry) * 3) - 1;
-	gp.base = (uint32_t)&GDT;
+	gp.base = (uintptr_t)&GDT;
 	
 	/* Flush out the old GDT and install the new changes */
-	gdt_flush();
+	gdtFlush();
 }
 

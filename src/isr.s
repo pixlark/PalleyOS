@@ -1,13 +1,13 @@
 .section .text
 # Keyboard Interrupt Handler
-.extern keyboard_interrupt_handler
+.extern keyboardInterruptHandler
 
-.global keyboard_isr
-.type keyboard_isr,@function
-keyboard_isr:
+.global keyboardIsr
+.type keyboardIsr,@function
+keyboardIsr:
 	pushal
 	cld
-	call keyboard_interrupt_handler
+	call keyboardInterruptHandler
 	popal
 	// Send EOI to PIC (Programmable Interrupt Controller)
 	mov $0x20, %al  // Handles IRQ's 0-7
@@ -20,159 +20,159 @@ keyboard_isr:
 
 # Divide By Zero (Fault) (0)
 
-.extern div_by_zero_handler
-.global div_by_zero_isr
-.type div_by_zero_isr, @function
-div_by_zero_isr:
+.extern divByZeroHandler
+.global divByZeroIsr
+.type divByZeroIsr, @function
+divByZeroIsr:
 	pushal
 	cld
-	call div_by_zero_handler
+	call divByZeroHandler
 	popal
 	iret
 
 # Debug (Fault/Trap) (1)
 
-.extern debug_handler
-.global debug_isr
-.type debug_isr, @function
-debug_isr:
+.extern debugHandler
+.global debugIsr
+.type debugIsr, @function
+debugIsr:
 	pushal
 	cld
-	call debug_handler
+	call debugHandler
 	popal
 	iret
 	
 # Breakpoint (Trap) (3)
 
-.extern breakpoint_handler
-.global breakpoint_isr
-.type breakpoint_isr, @function
-breakpoint_isr:
+.extern breakpointHandler
+.global breakpointIsr
+.type breakpointIsr, @function
+breakpointIsr:
 	pushal
 	cld
-	call breakpoint_handler
+	call breakpointHandler
 	popal
 	iret
 
 # Overflow (Trap) (4)
 
-.extern overflow_handler
-.global overflow_isr
-.type overflow_isr, @function
-overflow_isr:
+.extern overflowHandler
+.global overflowIsr
+.type overflowIsr, @function
+overflowIsr:
 	pushal
 	cld
-	call overflow_handler
+	call overflowHandler
 	popal
 	iret
 
 # Bound Range Exceeded Fault (5)
 
-.extern bound_range_exceeded_handler
-.global bound_range_isr
-.type bound_range_isr, @function
-bound_range_isr:
+.extern boundRangeExceededHandler
+.global boundRangeIsr
+.type boundRangeIsr, @function
+boundRangeIsr:
 	pushal
 	cld
-	call bound_range_exceeded_handler
+	call boundRangeExceededHandler
 	popal
 	iret
 
 # Invalid Opcode Fault (6)
-.extern invalid_opcode_handler
-.global invalid_opcode_isr
-.type invalid_opcode_isr, @function
-invalid_opcode_isr:
+.extern invalidOpcodeHandler
+.global invalidOpcodeIsr
+.type invalidOpcodeIsr, @function
+invalidOpcodeIsr:
 	pushal
 	cld
-	call invalid_opcode_handler
+	call invalidOpcodeHandler
 	popal
 	iret
 
 # Device Not Available Fault (7) 
-.extern device_na_handler
-.global device_na_isr
-.type device_na_isr, @function
-device_na_isr:
+.extern deviceNAHandler
+.global deviceNAIsr
+.type deviceNAIsr, @function
+deviceNAIsr:
 	pushal
 	cld
-	call device_na_handler
+	call deviceNAHandler
 	popal
 	iret
 
 # Double Fault (Abort) (8)
 
-.extern double_fault_handler
-.global double_fault_isr
-.type double_fault_isr, @function
-double_fault_isr:
+.extern doubleFaultHandler
+.global doubleFaultIsr
+.type doubleFaultIsr, @function
+doubleFaultIsr:
 	pushal
 	cld
-	call double_fault_handler
+	call doubleFaultHandler
 	popal
 	iret
 
 # Invalid TSS Fault (10)
 
-.extern invalid_tss_handler
-.global invalid_tss_isr
-.type invalid_tss_isr, @function
-invalid_tss_isr:
+.extern invalidTSSHandler
+.global invalidTSSIsr
+.type invalidTSSIsr, @function
+invalidTSSIsr:
 	pushal
 	cld
-	call invalid_tss_handler
+	call invalidTSSHandler
 	popal
 
 	iret
 
 # Segment Not Present Fault (11)
 
-.extern seg_not_pres_handler
-.global seg_not_pres_isr
-.type seg_not_pres_isr, @function
-seg_not_pres_isr:
+.extern segNotPresHandler
+.global segNotPresIsr
+.type segNotPresIsr, @function
+segNotPresIsr:
 	pushal
 	cld
-	call seg_not_pres_handler
+	call segNotPresHandler
 	popal
 
 	iret
 
 # Stack Segment Fault (12)
 
-.extern stack_seg_handler
-.global stack_seg_isr
-.type stack_seg_isr, @function
-stack_seg_isr:
+.extern stackSegHandler
+.global stackSegIsr
+.type stackSegIsr, @function
+stackSegIsr:
 	pushal
 	cld
-	call stack_seg_handler
+	call stackSegHandler
 	popal
 
 	iret
 
 # General Protection Fault (13)
 
-.extern general_prot_fault_handler
-.global general_prot_fault_isr
-.type general_prot_fault_isr, @function
-general_prot_fault_isr:
+.extern generalProtFaultHandler
+.global generalProtFaultIsr
+.type generalProtFaultIsr, @function
+generalProtFaultIsr:
 	
 	pushal
 	cld
-	call general_prot_fault_handler
+	call generalProtFaultHandler
 	popal
 	iret
 
 # Page Fault (14)
-.extern term_write_int
-.extern page_fault_handler
-.global page_fault_isr
-.type page_fault_isr, @function
-page_fault_isr:
+.extern termWriteInt
+.extern pageFaultHandler
+.global pageFaultIsr
+.type pageFaultIsr, @function
+pageFaultIsr:
 	pushal
 	cld
-	call page_fault_handler
+	call pageFaultHandler
 	popal
 	add $4, %esp # Get rid of error
 
@@ -180,13 +180,13 @@ page_fault_isr:
 
 # x87 Floating-Point Exception (Fault) (16)
 
-.extern fpe_handler
-.global fpe_isr
-.type fpe_isr, @function
-fpe_isr:
+.extern fpeHandler
+.global fpeIsr
+.type fpeIsr, @function
+fpeIsr:
 	pushal
 	cld
-	call fpe_handler
+	call fpeHandler
 	popal
 
 	iret
@@ -194,9 +194,9 @@ fpe_isr:
 # Alignment Check Fault (17)
 
 .extern align_check_handler
-.global align_check_isr
-.type align_check_isr, @function
-align_check_isr:
+.global alignCheckIsr
+.type alignCheckIsr, @function
+alignCheckIsr:
 	pushal
 	cld
 	call align_check_handler
@@ -207,9 +207,9 @@ align_check_isr:
 # Machine Check (18)
 
 .extern machine_check_handler
-.global machine_check_isr
-.type machine_check_isr, @function
-machine_check_isr:
+.global machineCheckIsr
+.type machineCheckIsr, @function
+machineCheckIsr:
 	pushal
 	cld
 	call machine_check_handler
@@ -218,24 +218,24 @@ machine_check_isr:
 
 # SIMD Floating Point Exception (Fault) (19)
 
-.extern simd_fpe_handler
-.global simd_fpe_isr
-.type simd_fpe_isr, @function
-simd_fpe_isr:
+.extern simdFpeHandler
+.global simdFpeIsr
+.type simdFpeIsr, @function
+simdFpeIsr:
 	pushal
 	cld
-	call simd_fpe_handler
+	call simdFpeHandler
 	popal
 	iret
 
 # Virtualization Exception (Fault) (20)
 
-.extern virt_handler
-.global virt_isr
-.type virt_isr, @function
-virt_isr:
+.extern virtHandler
+.global virtIsr
+.type virtIsr, @function
+virtIsr:
 	pushal
 	cld
-	call virt_handler
+	call virtHandler
 	popal
 	iret

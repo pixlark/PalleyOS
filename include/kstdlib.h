@@ -29,3 +29,7 @@ size_t kstrcpy(char* dest, const char* src);
 // Like kstrcpy, but copies at most `max` characters from src to
 // destination
 size_t kstrncpy(char* dest, const char* src, size_t max);
+
+// Sets num bytes to value at dest
+// returns the number of chars written
+void kmemset(void* dest, uint8_t value, size_t num);

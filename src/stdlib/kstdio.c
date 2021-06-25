@@ -163,7 +163,7 @@ void ksprintf(char* result, const char* format, ...) {
 void kvprintf(const char* format, va_list args) {
     char result[512];
     kvsprintf(result, format, args);
-    term_write(result);
+    tioWrite(result);
 }
 
 void kprintf(const char* format, ...) {

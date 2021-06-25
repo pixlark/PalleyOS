@@ -10,12 +10,12 @@ struct cpuid_struct {
 	uint32_t edx_features;
 } cpuid = {0};
 
-extern uint32_t load_cpu_vendor_name(uint32_t* name_buff);
-extern uint32_t is_CPUID_available();
+extern uint32_t loadCpuVendorName(uint32_t* name_buff);
+extern uint32_t isCpuidAvailable();
 
-static bool fetch_cpuid() {
+static bool fetchCpuid() {
 	uint32_t buff[3];
-	load_cpu_vendor_name(buff);
+	loadCpuVendorName(buff);
 
 	int i = 0;
 	/* Breaks if I put the second while loop into the for loop :(((( */
@@ -37,16 +37,16 @@ static bool fetch_cpuid() {
 	return true;
 }
 
-void load_cpuid() {
-	uint32_t available = is_CPUID_available();
+void loadCpuid() {
+	uint32_t available = isCpuidAvailable();
 
 	if(available == 0) {
 		kprintf("Unable to load CPUID (not available)");
 		return;
 	}
 	
-	fetch_cpuid();	
-	load_cpuid_features((intptr_t)&cpuid.ecx_features, (intptr_t)&cpuid.edx_features);
+	fetchCpuid();	
+	cpuidLoadFeatures((intptr_t)&cpuid.ecx_features, (intptr_t)&cpuid.edx_features);
 	
 	if(cpuid.edx_features & (1 << 9)) {
 		kprintf("Has Built in APIC!\n");
@@ -55,8 +55,8 @@ void load_cpuid() {
 	}
 }
 
-void print_cpuid_vendor() {
-	if(fetch_cpuid()) {
+void cpuidPrintVendor() {
+	if(fetchCpuid()) {
         kprintf("vendor id: ");
         kprintf(cpuid.vendor_id);
         kprintf("\n");
