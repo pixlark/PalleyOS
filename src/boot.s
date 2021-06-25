@@ -67,12 +67,6 @@ flush_tlb:
 
 # Function that takes in a pointer to the 
 # IDTInfo struct and loads the idt 
-.extern idt_info
-.global idtLoad
-.type idtLoad, @function
-idtLoad:
-	lidt (idt_info)
-	ret
 
 .global getFaultAddress
 .type getFaultAddress, @function
