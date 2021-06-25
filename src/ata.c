@@ -356,7 +356,7 @@ extern void ataWriteToPort(uint16_t port, char* buffer, uint32_t num_reads);
 // Used by ideRead/write_sectors
 uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 						uint8_t num_sects, char* buffer) {
-    disable_interrupts();
+    cli();
     
 	uint8_t lba_mode, 	/* 0: CHS, 1:LBA48 */
 			dma, 	   	/* 0: No DMA, 1: DMA */ 
@@ -506,7 +506,7 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
         }
     }
 
-    enable_interrupts();
+    sti();
 
 	return 0; // wow thats a mammoth
 }

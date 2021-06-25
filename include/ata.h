@@ -5,6 +5,7 @@
    Enumerating the PCI, we find IDE Controllers or ATA Controllers.
    We know they are the correct type of controllers because the
    Class Code is 0x01 and Subclass code is either 0x01(IDE) or 0x05(ATA)
+*/
 
 #define ATA_SECTOR_SIZE 512 // TODO(Anyone): Not actually used by ata.c yet...
 
@@ -30,6 +31,8 @@ struct IDEDevice {
 };
 
 typedef struct ide_device IDEDevice;
+
+extern struct IDEDevice ide_devices[4];
 
 struct PRD {
     uint32_t address;

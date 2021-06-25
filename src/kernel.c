@@ -14,7 +14,6 @@
 #include <pci.h>
 #include <pic.h>
 #include <sknyfs.h>
-#include <terminal_proc.h>
 #include <timer.h>
 #include <timer.h>
 
@@ -82,7 +81,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	//loadCpuid();
 	//cpuidPrintVendor();
 
-	//pciCheckAllBuses();
+	pciCheckAllBuses();
 
     // Ensure there's a hard drive loaded
     if (!ide_devices[0].reserved) {
@@ -109,8 +108,6 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
             }
         }
     }
-
-	terminal_proc_start();
 
 	kShellStart();
 }

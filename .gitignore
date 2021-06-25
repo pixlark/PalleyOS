@@ -59,6 +59,7 @@ dkms.conf
 obj/
 build/
 isodir/
+test-isodir/
 
 .*.py
 *.img
