@@ -142,7 +142,7 @@ static SknyStatus searchFileMap(SknyHandle* handle, FileIndex* ret) {
 // TODO(Paul): If this function reads in only the sector containing
 // the metadata, and not the entire chunk containing the metadata, it
 // will become a bit more efficient. So do that.
-static writeFileMetadata(SknyHandle* handle, FileIndex file_index, FileMetadata* file_metadata) {
+static writeFileMetadata(SknyHandle* handle, FileIndex file_index, FileMetadata* file_metadata) { 
     ChunkLocation chunk_offset = file_index / FILES_PER_CHUNK;
     AbsoluteLocation location = FILE_MAP_BEGIN + (chunk_offset * CHUNK_SIZE);
     FileMetadata files[FILES_PER_CHUNK];
@@ -187,13 +187,11 @@ SknyStatus sknyCreateFile(SknyHandle* handle, const char* name) {
     // Now, actually create the file
     //
     markChunkAsUsed(handle, available_chunk);
-
-    // Somehow doing *just* this changes the file map? This is an issue.
     
-    //FileMetadata file_metadata;
-    //kstrncpy(file_metadata.name, name, 252);
-    //file_metadata.location = available_chunk;
-    //writeFileMetadata(handle, file_index, &file_metadata);
+    FileMetadata file_metadata;
+    kstrncpy(file_metadata.name, name, 252);
+    file_metadata.location = available_chunk;
+    writeFileMetadata(handle, file_index, &file_metadata);
     
     return SKNY_STATUS_OK;
 }
@@ -260,6 +258,6 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
     kprintf("(!!!) DONE FORMATTING\n");
     kprintf("=======================================\n");
     #endif
-
+    
     return SKNY_STATUS_OK;
 }
