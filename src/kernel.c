@@ -80,28 +80,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 
 	pciCheckAllBuses();
 
-    kprintf("Starting Timer\n");
-
-    PITResult counter = pitAddCounter();
-    uint8_t counter_id = counter.counter_id;
-    if(counter.isError == true){
-        if(counter.error == PITCountersFull)
-           kprintf("No more PIT counters available\n"); 
-    }
-    
-    char write[512*10] = "WOOOOO";
-    for(int i = 0; i < 1024*1024/512; i++) {
-        ideWriteSectors(0, 1, 512*10, write); 
-        char read[512*10];
-        kmemset(read, 0, sizeof(read));
-        ideReadSectors(0, 1, 512*10, read);
-    }
-
-    PITResult num_millis_elapsed = pitGetCounterCount(counter_id);
-    if(num_millis_elapsed.isError == true)
-        kprintf("Error getting pit counter\n");
-    kprintf("Millis Elapsed: %d\n", num_millis_elapsed.count);
-
+    ata_test();t
     
 	kShellStart();
 }

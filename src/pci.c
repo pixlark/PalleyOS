@@ -164,19 +164,14 @@ static void printDevice(PCIDevice pd, char* padding){
 }
 
 static void handleDistController(PCIDevice pd) {
-	uint32_t bar0 = pciReadBar(pd.bus, pd.device, pd.function, 0);
-	uint32_t bar1 = pciReadBar(pd.bus, pd.device, pd.function, 1);
-	uint32_t bar2 = pciReadBar(pd.bus, pd.device, pd.function, 2);
-	uint32_t bar3 = pciReadBar(pd.bus, pd.device, pd.function, 3);
-	uint32_t bar4 = pciReadBar(pd.bus, pd.device, pd.function, 4);
-	uint32_t bar5 = pciReadBar(pd.bus, pd.device, pd.function, 5);
-    kprintf("BAR0: 0x%x\n", bar0);
-    kprintf("BAR1: 0x%x\n", bar1);
-    kprintf("BAR2: 0x%x\n", bar2);
-    kprintf("BAR3: 0x%x\n", bar3);
-    kprintf("BAR4: 0x%x\n", bar4);
-    kprintf("BAR5: 0x%x\n", bar5);
-	ideInitialize(bar0, bar1, bar2, bar3, bar4);	
+    uint32_t bars[6];
+	bars[0] = pciReadBar(pd.bus, pd.device, pd.function, 0);
+	bars[1] = pciReadBar(pd.bus, pd.device, pd.function, 1);
+	bars[2] = pciReadBar(pd.bus, pd.device, pd.function, 2);
+	bars[3] = pciReadBar(pd.bus, pd.device, pd.function, 3);
+	bars[4] = pciReadBar(pd.bus, pd.device, pd.function, 4);
+	bars[5] = pciReadBar(pd.bus, pd.device, pd.function, 5);
+	ideInitialize(bars);	
 }
 
 void pciCheckDevice(uint8_t bus, uint8_t device) {

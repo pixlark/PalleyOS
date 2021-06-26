@@ -18,6 +18,7 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 struct IDEChannelRegisters {
 	uint16_t base; 			// I/O Base	
@@ -64,10 +65,35 @@ enum ATAError {
 
 typedef enum ATAError ATAError;
 
+enum IDEDirection {
+    IDERead,
+    IDEWrite
+};
+typedef enum IDEDirection IDEDirection;
+
+enum LBAMode {
+    LBA28,
+    LBA48,
+    LBACHS
+};
+typedef enum LBAMode LBAMode; 
+
+struct IDETransferInfo {
+    uint32_t lba;
+    uint8_t  lba_io[6];
+    uint8_t  head;
+    uint8_t  cyl;
+    uint8_t  sect;
+    LBAMode  lba_mode;
+    bool dma;
+    IDEDirection dir;
+};
+
+typedef struct IDETransferInfo IDETransferInfo;
 
 void ata_test();
-void ideInitialize(uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3, uint32_t BAR4);
-ATAError ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
+void ideInitialize (uint32_t bars[6]);
+ATAError ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
 ATAError ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
 
 void ideIRQHandler();
