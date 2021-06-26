@@ -56,7 +56,7 @@ static inline void sti() {
 	__asm volatile ("sti");
 }
 
-static inline void send_EOI() {
+static inline void sendEndOfInterrupt() {
 	outb(0x20, 0x20);
 	outb(0xa0, 0x20);
 }

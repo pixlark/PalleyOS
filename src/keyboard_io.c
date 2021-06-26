@@ -136,7 +136,7 @@ void keyboardInterruptHandler(){
 	uint8_t scan_code = inb(0x60);
 	scancode_queue[queue_widx] = scan_code;
 	queue_widx++;
-	send_EOI();
+	sendEndOfInterrupt();
 }
 
 /* ===== SENDING COMMANDS TO KEYBOARD ===== */

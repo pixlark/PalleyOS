@@ -141,8 +141,6 @@ struct IDEDevice {
 	uint32_t command_sets;		// Command Sets Supported
 	uint32_t size;				// Size in sectors	
 	unsigned char model[41]; 	// Model string
-    uint32_t max_lba;
-    uint32_t max_lba_ext;
 };
 
 typedef struct IDEDevice IDEDevice;

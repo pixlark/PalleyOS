@@ -43,15 +43,15 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 
 	/* Set up IDT */
 	kprintf("Setting up the IDT\n");
-	idtHandleSetup();
+	idtInit();
 
 	/* Set up GDT */	
 	kprintf("Setting up GDT\n");
 	gdtInit();
 
-	/* Init PIT */
+	/* Init Timer and PIT */
+    kprintf("Initializing PIT Timer\n");
 	initPITTimer();
-    
     
     // Inform the memory unit of our physical memory situation
     loadPhysicalMemoryRegionDescriptors(multiboot_info);
@@ -75,15 +75,33 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
         kheapDump();
     }
 
-	/* Init Timer and PIT */
-	initPITTimer();
-
 	loadCpuid();
 	cpuidPrintVendor();
 
 	pciCheckAllBuses();
 
-    ata_test();
+    kprintf("Starting Timer\n");
 
+    PITResult counter = pitAddCounter();
+    uint8_t counter_id = counter.counter_id;
+    if(counter.isError == true){
+        if(counter.error == PITCountersFull)
+           kprintf("No more PIT counters available\n"); 
+    }
+    
+    char write[512*10] = "WOOOOO";
+    for(int i = 0; i < 1024*1024/512; i++) {
+        ideWriteSectors(0, 1, 512*10, write); 
+        char read[512*10];
+        kmemset(read, 0, sizeof(read));
+        ideReadSectors(0, 1, 512*10, read);
+    }
+
+    PITResult num_millis_elapsed = pitGetCounterCount(counter_id);
+    if(num_millis_elapsed.isError == true)
+        kprintf("Error getting pit counter\n");
+    kprintf("Millis Elapsed: %d\n", num_millis_elapsed.count);
+
+    
 	kShellStart();
 }

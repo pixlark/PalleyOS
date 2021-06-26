@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include <stddef.h>
+
 typedef uint32_t PageDirEntry;
 
 typedef struct {

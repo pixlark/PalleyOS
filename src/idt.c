@@ -112,7 +112,7 @@ void irqClearMask(uint8_t irq_line) {
 
 /* ===== Interrupts ===== */
 // Timer IRQ (PIT)
-extern void TimerIRQ();
+extern void PITIRQ();
 // Keyboard Input (PC/2)
 extern void keyboardIsr(void);
 // Ide Controller DMA IRQ
@@ -120,7 +120,7 @@ extern void ideIRQISR(void);
 
 
 /* ======== SETUP ======== */
-void idtHandleSetup() {
+void idtInit() {
 	cli();
 	remapPIC(0x20, 0x28);
 
@@ -129,7 +129,7 @@ void idtHandleSetup() {
 
     addExceptionsHandlersToIdt();
 
-	addIsrToIdt(0x20, &TimerIRQ, 0, INTERRUPT_GATE_32);
+	addIsrToIdt(0x20, &PITIRQ, 0, INTERRUPT_GATE_32);
     addIsrToIdt(0x21, &keyboardIsr, 0, INTERRUPT_GATE_32);	
 
     // Primary ATA Device after DMA transfer
@@ -145,6 +145,22 @@ void idtHandleSetup() {
 
 	kprintf("idt_entries loc: 0x%x\n", idt_entries);
 	sti();
+}
+
+// Adds an Interrupt Service Routine (ISR) to the Interrupt Descriptor Table (IDT)
+//  - offset is the entry number in the IDT
+//  - isr is a function pointer to the ISR
+//  - desc_level is the ring level for the interrupt
+//  - type can be 
+//      - TASK_GATE
+//      - INTERRUPT_GATE_16, INTERRUPT_GATE_32
+//      - TRAP_GATE_16, TRAP_GATE_32
+void idtAddISR(uint8_t offset, void (*isr)(), uint8_t desc_level, uint8_t type){
+    cli();
+
+    addIsrToIdt(offset, isr, desc_level, type);
+    idtLoad(&idt_info);
+    sti();
 }
 
 /*

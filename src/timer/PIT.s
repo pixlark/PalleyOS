@@ -24,23 +24,15 @@ PIT_reload_value:			.word 0 # Current PIT value
 IRQ0_frequency:				.long 0 # Actual frequency used
 
 .section .text
-.extern TimerIRQ
-.global IRQ0_handler
-.type IRQ0_handler, @function
+.extern PITIRQ
+.global PITIRQHandler
+.type PITIRQHandler, @function
 # The PIT raises an interrupt 0
-IRQ0_handler:
+PITIRQHandler:
 	push %eax
 	push %ebx
 
-	mov (IRQ0_fraction_ms), %eax	
-	mov (IRQ0_ms), %ebx					# eax.ebx = amount of timer between IRQs
-	add (system_timer_fraction_ms), %eax 
-	adc (system_timer_whole_ms), %ebx
-
-	call TimerIRQ
-	
-	mov $0x20, %al
-	outb %al, $0x20		# Send EOI (End of Interrupt) to the PIC
+	call PITIRQ
 
 	pop %ebx
 	pop %eax

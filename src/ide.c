@@ -297,65 +297,63 @@ void ideInitialize (uint32_t BAR0, uint32_t BAR1,
 
 	// 3. Detect possible ATA or ATAPI Devices
 	int count = 0;
-	for (int channel = 0; channel < 2; channel++) {
-		for(int drive = 0; drive < 2; drive++) {
+	for (int i = 0; i < 2; i++) {
+		for(int j = 0; j < 2; j++) {
 			uint8_t err = 0, type = IDE_ATA, status;
-			ide_devices[count].reserved = 0; // Assume there is no drive here
+			ide_devices[count].reserved = 0; // Assume there is no j here
 
 			// i. Select the Drive
-			ideWrite(channel, ATA_REG_HDDEVSEL, 0xA0 | (drive << 4));
-			sleep(1);	// Wait 1ms for drive select to finish
+			ideWrite(i, ATA_REG_HDDEVSEL, 0xA0 | (j << 4));
+			pitSleep(1);	// Wait 1ms for j select to finish
 
 			// ii. Send ATA Identify Command
-			ideWrite(channel, ATA_REG_COMMAND, ATA_CMD_IDENTIFY);
-			sleep(1);	// Wait for 1ms	
+			ideWrite(i, ATA_REG_COMMAND, ATA_CMD_IDENTIFY);
+			pitSleep(1);	// Wait for 1ms	
 
 			// iii. Polling
             // If status == 0, No Device
-			if (ideRead(channel, ATA_REG_STATUS) == 0) continue; 
+			if (ideRead(i, ATA_REG_STATUS) == 0) continue; 
 			
 			while(1) {
-				status = ideRead(channel, ATA_REG_STATUS);
+				status = ideRead(i, ATA_REG_STATUS);
 		        if ((status & ATA_SR_ERR)) { err = DeviceNotATA; break; } // If ERR, device is not ATA
 				if (!(status & ATA_SR_BSY) && (status & ATA_SR_DRQ)) break; // Everything checks
 			}
 
 			// iv. Probe for ATAPI Devices
 			if (err != NoError) {
-				uint8_t cl = ideRead(channel, ATA_REG_LBA1);
-				uint8_t ch = ideRead(channel, ATA_REG_LBA2);
+				uint8_t cl = ideRead(i, ATA_REG_LBA1);
+				uint8_t ch = ideRead(i, ATA_REG_LBA2);
 
 				if      (cl == 0x14 && ch == 0xEB)  type = IDE_ATAPI;
 				else if (cl == 0x69 && ch == 0x96)  type = IDE_ATAPI;
 				else
 					continue; // Type unknown (Might not be a Device)
 
-				ideWrite(channel, ATA_REG_COMMAND, ATA_CMD_IDENTIFY_PACKET);
-				sleep(1); // You know the drill
+				ideWrite(i, ATA_REG_COMMAND, ATA_CMD_IDENTIFY_PACKET);
+				pitSleep(1); // You know the drill
 			}
 
 			// v. Read the Identification Space of the Device	
-			ideReadBuffer(channel, ATA_REG_DATA, (uint32_t*) ide_buf, 128);	
-
+			ideReadBuffer(i, ATA_REG_DATA, (uint32_t*) ide_buf, 128);	
+       
 			// vi. Read Device Parameters
 			ide_devices[count].reserved     = 1;
 			ide_devices[count].type         = type;
-			ide_devices[count].channel      = channel;
-			ide_devices[count].drive        = drive;
+			ide_devices[count].channel      = i;
+			ide_devices[count].drive        = j;
 		    ide_devices[count].signature    = *((uint16_t *)ide_buf + ATA_IDENT_DEVICETYPE);
 			ide_devices[count].capabilities = *((uint16_t *)ide_buf + ATA_IDENT_CAPABILITIES);
 			ide_devices[count].command_sets = *((uint16_t *)ide_buf + ATA_IDENT_COMMANDSETS);
-			ide_devices[count].max_lba      = *((uint16_t *)ide_buf + ATA_IDENT_MAX_LBA);
-			ide_devices[count].max_lba_ext   = *((uint16_t *)ide_buf + ATA_IDENT_MAX_LBA_EXT);
 
 			// vii. Get Size
 			if (ide_devices[count].command_sets & (1 << 26))
 				// Device uses 48-bit addressing
-				ide_devices[count].size = *((uint16_t*)(ide_buf + ATA_IDENT_MAX_LBA_EXT));
+				ide_devices[count].size = *((uint32_t*)(ide_buf + ATA_IDENT_MAX_LBA_EXT));
 			else
-				// Device uses 48-bit addressing
-				ide_devices[count].size = *((uint16_t*)(ide_buf + ATA_IDENT_MAX_LBA));
-
+				// Device uses 28-bit addressing
+				ide_devices[count].size = *((uint32_t*)(ide_buf + ATA_IDENT_MAX_LBA));
+    
 			// viii. String indicated model of device
 			for (int k = 0; k < DEVICE_MODEL_STR_LEN; k += 2){
 				ide_devices[count].model[k]   = ide_buf[ATA_IDENT_MODEL + k + 1];
@@ -379,17 +377,17 @@ void ideInitialize (uint32_t BAR0, uint32_t BAR1,
 
 // Sends the LBA address to the Drive Device
 static void ideSendLBA(uint16_t channel, uint8_t lba_mode, 
-                       uint8_t lba_io[6], uint16_t num_sects) {
+                       uint8_t* lba_io[6], uint16_t num_sects) {
 	if (lba_mode == 2) {
 		ideWrite(channel, ATA_REG_SECCOUNT1, 0);
-		ideWrite(channel, ATA_REG_LBA3, lba_io[3]);
-		ideWrite(channel, ATA_REG_LBA4, lba_io[4]);
-		ideWrite(channel, ATA_REG_LBA5, lba_io[5]);
+		ideWrite(channel, ATA_REG_LBA3, *lba_io[3]);
+		ideWrite(channel, ATA_REG_LBA4, *lba_io[4]);
+		ideWrite(channel, ATA_REG_LBA5, *lba_io[5]);
 	}
 	ideWrite(channel, ATA_REG_SECCOUNT0, num_sects);
-	ideWrite(channel, ATA_REG_LBA0, lba_io[0]);
-	ideWrite(channel, ATA_REG_LBA1, lba_io[1]);
-	ideWrite(channel, ATA_REG_LBA2, lba_io[2]);
+	ideWrite(channel, ATA_REG_LBA0, *lba_io[0]);
+	ideWrite(channel, ATA_REG_LBA1, *lba_io[1]);
+	ideWrite(channel, ATA_REG_LBA2, *lba_io[2]);
 }
 
 static void ideSendAccessCommand(uint16_t channel, uint8_t lba_mode, uint8_t dma, uint8_t dir){
@@ -493,10 +491,35 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
 		ideWrite(channel, ATA_REG_HDDEVSEL, 0xE0 | (slave_bit << 4) | head);
 
 	// 5. Write Parameters
-    ideSendLBA(channel, lba_mode, lba_io, num_sects);
+	if (lba_mode == 2) {
+		ideWrite(channel, ATA_REG_SECCOUNT1, 0);
+		ideWrite(channel, ATA_REG_LBA3, lba_io[3]);
+		ideWrite(channel, ATA_REG_LBA4, lba_io[4]);
+		ideWrite(channel, ATA_REG_LBA5, lba_io[5]);
+	}
+	ideWrite(channel, ATA_REG_SECCOUNT0, num_sects);
+	ideWrite(channel, ATA_REG_LBA0, lba_io[0]);
+	ideWrite(channel, ATA_REG_LBA1, lba_io[1]);
+	ideWrite(channel, ATA_REG_LBA2, lba_io[2]);
+    //ideSendLBA(channel, lba_mode, &lba_io, num_sects);
 
 	// 6. Select the command and send it
-    ideSendAccessCommand(channel, lba, dma, dir);
+    uint8_t cmd;
+    if (lba_mode == 0 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;
+    else if (lba_mode == 1 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO;   
+    else if (lba_mode == 2 && dma == 0 && dir == 0) cmd = ATA_CMD_READ_PIO_EXT;   
+    else if (lba_mode == 0 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA;
+    else if (lba_mode == 1 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA;
+    else if (lba_mode == 2 && dma == 1 && dir == 0) cmd = ATA_CMD_READ_DMA_EXT;
+    else if (lba_mode == 0 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+    else if (lba_mode == 1 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO;
+    else if (lba_mode == 2 && dma == 0 && dir == 1) cmd = ATA_CMD_WRITE_PIO_EXT;
+    else if (lba_mode == 0 && dma == 1 && dir == 1) cmd = ATA_CMD_WRITE_DMA;
+    else if (lba_mode == 1 && dma == 1 && dir == 1) cmd = ATA_CMD_WRITE_DMA;
+    else cmd = ATA_CMD_WRITE_DMA_EXT;
+    ideWrite(channel, ATA_REG_COMMAND, cmd);
+
+   // ideSendAccessCommand(channel, lba, dma, dir);
 
 	// We should poll, then read/write a sector and repeat
 	// until all sectors needed, or if an error has occured, the function will
@@ -506,8 +529,6 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
         uint16_t base_port = channels[channel].bmide;
         uint8_t oldComRegister = inb(base_port + 0x0);
         outb(base_port + 0x0, oldComRegister | 1); // Set Start/Stop bit (put in DMA mode)
-
-
     }else {
         if (dir == ATA_READ) {
             // PIO read sectors into buffer
@@ -531,6 +552,7 @@ uint8_t ideATAAccess(uint8_t dir, uint8_t drive, uint32_t lba,
             // PIO write sectors into buffer
             for (int i = 0; i < num_sects; i++) {
                 idePolling(channel, false); // Wait for device to be ready
+
                 for(size_t j = 0; j < words*2; j+=2) {
                     // Device takes words (2 bytes), not chars
                     uint16_t tmp = ((uint16_t)buffer[j] <<8);
@@ -560,11 +582,14 @@ ATAError ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 					char* buffer) {
 
 	// 1. Check if the drive presents:
-	if (drive > 3 || ide_devices[drive].reserved == 0) return DriveNotFound;
+	if (drive > 3 || ide_devices[drive].reserved == 0) {
+        return idePrintError(drive, DriveNotFound);
+    }
 	
 	// 2. Check if inputs are valid
-	else if( lba + num_sects > ide_devices[drive].size &&
+	else if( (lba + num_sects) > ide_devices[drive].size &&
 			ide_devices[drive].type == IDE_ATA) {
+        kprintf("ERROR: LBAOutOfRange, lba 0x%x, size: 0x%x\n", lba, ide_devices[drive].size);
 		return LBAOutOfRange;	// Seeking to invalid position
     }
 
@@ -574,8 +599,7 @@ ATAError ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 		if(ide_devices[drive].type == IDE_ATA)
 			err = ideATAAccess(ATA_READ, drive, lba, num_sects, buffer);
 
-        idePrintError(drive, err);	
-		return err; 
+        return idePrintError(drive, err);	
 	}
 	return NoError;
 }
@@ -584,12 +608,13 @@ ATAError ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 ATAError ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 						char * buffer) {
 	// 1. Check if the drive presents:
-	if (drive > NUM_IDE_DEVICES-1 || ide_devices[drive].reserved == 0) 
-        return DriveNotFound;
+	if (drive > 3 || ide_devices[drive].reserved == 0) 
+        return idePrintError(drive, DriveNotFound);
 	
 	// 2. Check if inputs are in range and ATA
-	else if( lba + num_sects > ide_devices[drive].size &&
+	else if( (lba + num_sects) > ide_devices[drive].size &&
              ide_devices[drive].type == IDE_ATA ) {
+        kprintf("ERROR: LBAOutOfRange, lba 0x%x, size: 0x%x\n", lba, ide_devices[drive].size);
 		return LBAOutOfRange;	// Seeking to invalid position
     }
 
@@ -791,11 +816,19 @@ void ata_test (){
     uint8_t channel = ide_devices[drive].channel;
     kprintf("Drive: %d, Channel: %d, BMIDE: 0x%x\n",drive, channel, channels[channel].bmide);
     char write[512*4] = "WOOOOO";
-    ideWriteSectors(0, 4, 512*4, write); 
-    char read[512*4];
-    kmemset(read, 0, sizeof(read));
-    ideReadSectors(0, 4, 512*4, read);
-    kprintf("should be: %s\n", read);
+    for(int i = 0; i < 200; i++) {
+        ideWriteSectors(0, 4, 512*4, write); 
+        char read[512*4];
+        kmemset(read, 0, sizeof(read));
+        ideReadSectors(0, 4, 512*4, read);
+    }
+
+    for(int i = 0; i < 200; i++) {
+        ideWriteSectors(0, 4, 512*4, write); 
+        char read[512*4];
+        kmemset(read, 0, sizeof(read));
+        ideReadSectors(0, 4, 512*4, read);
+    }
 
     //kmemset(read, 0, sizeof(read));
     //uintptr_t addr = ataReadDMA(0, 512*4, 512*4); 
