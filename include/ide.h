@@ -141,9 +141,11 @@ struct IDEDevice {
 	uint32_t command_sets;		// Command Sets Supported
 	uint32_t size;				// Size in sectors	
 	unsigned char model[41]; 	// Model string
+    uint32_t max_lba;
+    uint32_t max_lba_ext;
 };
 
-typedef struct ide_device IDEDevice;
+typedef struct IDEDevice IDEDevice;
 
 struct PRD {
     uint32_t address;
@@ -153,10 +155,25 @@ struct PRD {
 
 typedef struct PRD PRD;
 
+enum ATAError {
+    NoError,
+    GeneralError,
+    DeviceFault,
+    NoDevice,
+    DRQError,
+    WriteProtected,
+    DriveNotFound,
+    DeviceNotATA,
+    LBAOutOfRange,
+};
+
+typedef enum ATAError ATAError;
+
+
 void ata_test();
-void ide_initialize(uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3, uint32_t BAR4);
-uint8_t ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
-uint8_t ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
+void ideInitialize(uint32_t BAR0, uint32_t BAR1, uint32_t BAR2, uint32_t BAR3, uint32_t BAR4);
+ATAError ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char * buffer);
+ATAError ideReadSectors(uint8_t drive, uint8_t num_sects, uint32_t lba, char* buffer);
 
 void ideIRQHandler();
 

@@ -3,7 +3,7 @@
 #include <io.h>
 #include <kstdio.h>
 #include <pci.h>
-#include <ata.h>
+#include <ide.h>
 
 #define PCI_CONF_ADDR	0xCF8
 #define PCI_CONF_DATA	0xCFC
@@ -176,7 +176,7 @@ static void handleDistController(PCIDevice pd) {
     kprintf("BAR3: 0x%x\n", bar3);
     kprintf("BAR4: 0x%x\n", bar4);
     kprintf("BAR5: 0x%x\n", bar5);
-	ide_initialize(bar0, bar1, bar2, bar3, bar4);	
+	ideInitialize(bar0, bar1, bar2, bar3, bar4);	
 }
 
 void pciCheckDevice(uint8_t bus, uint8_t device) {

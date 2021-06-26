@@ -9,7 +9,7 @@
 #include <kstdlib.h>
 #include <pci.h>
 #include <pic.h>
-#include <ata.h>
+#include <ide.h>
 #include <io.h>
 #include <kshell.h>
 #include <memory.h>
