@@ -3,7 +3,7 @@
 #include <io.h>
 #include <kstdio.h>
 #include <pci.h>
-#include <ata.h>
+#include <ide.h>
 
 #define PCI_CONF_ADDR	0xCF8
 #define PCI_CONF_DATA	0xCFC
@@ -48,6 +48,9 @@ PCIDevice pciGetDevice(uint8_t bus, uint8_t device, uint8_t func) {
 
 	ret.header_type = pciConfigReadWord(bus, device, func, 0x0e) & 0xff;
 	ret.bist = pciConfigReadWord(bus, device, func, 0x0e) >> 8;
+
+    ret.interrupt_line = pciConfigReadWord(bus, device, func, 0x3c) & 0xff;
+    ret.interrupt_pin = pciConfigReadWord(bus, device, func, 0x3c) >> 8;
 
 	return ret;
 }
@@ -156,16 +159,8 @@ static void printDevice(PCIDevice pd, char* padding){
 	kprintf("%s  Header Type: 0x%x\n", padding, pd.header_type);
 	kprintf("%s  Class Code:  0x%x\n", padding, pd.class_code);
 	kprintf("%s  Sub Class:   0x%x\n", padding, pd.sub_class);
-
-	/*
-	for(int i = 0; i <= 5; i++){	
-		uint32_t bar = pciReadBar(pd.bus, pd.device, pd.function, i);
-		if(bar == 0) continue;
-		int pad_size = sizeof(padding)/sizeof(char) + 3;
-		char pad[pad_size];		
-		printBar(pd, bar, i, padding);
-	}
-	*/
+    kprintf("%s  IRQ Pin:     0x%x\n", padding, pd.interrupt_pin);
+    kprintf("%s  IRQ Line:    0x%x\n", padding, pd.interrupt_line);
 }
 
 static void handleDistController(PCIDevice pd) {
@@ -174,7 +169,14 @@ static void handleDistController(PCIDevice pd) {
 	uint32_t bar2 = pciReadBar(pd.bus, pd.device, pd.function, 2);
 	uint32_t bar3 = pciReadBar(pd.bus, pd.device, pd.function, 3);
 	uint32_t bar4 = pciReadBar(pd.bus, pd.device, pd.function, 4);
-	ide_initialize(bar0, bar1, bar2, bar3, bar4);	
+	uint32_t bar5 = pciReadBar(pd.bus, pd.device, pd.function, 5);
+    kprintf("BAR0: 0x%x\n", bar0);
+    kprintf("BAR1: 0x%x\n", bar1);
+    kprintf("BAR2: 0x%x\n", bar2);
+    kprintf("BAR3: 0x%x\n", bar3);
+    kprintf("BAR4: 0x%x\n", bar4);
+    kprintf("BAR5: 0x%x\n", bar5);
+	ideInitialize(bar0, bar1, bar2, bar3, bar4);	
 }
 
 void pciCheckDevice(uint8_t bus, uint8_t device) {
@@ -183,18 +185,15 @@ void pciCheckDevice(uint8_t bus, uint8_t device) {
 	PCIDevice pd = pciGetDevice(bus, device, function);
 
 #if DEBUG
-	uint16_t vendor_id = pci_get_vendor_id(bus, device, 0);
+	uint16_t vendor_id = pd.vendor_id; 
 	if(vendor_id == 0xffff) return;
 	uint16_t device_id = pciConfigReadWord(bus, device, 0, 2);
 
 	kprintf("Valid VendorID: 0x%x\n", vendor_id);
 	kprintf("    DeviceID: 0x%x\n", device_id);
-	kprintf("    Header Type: 0x%x\n", pciGetHeaderType(bus, device, function));
-	kprintf("    Base Class: 0x%x\n", pciGetBaseClass(bus, device, function));
-	kprintf("    Sub Class: ", pciGetSubClass(bus, device, function));
-	pciWriteBar(bus, device, function, 0, 0xfffffff0);
-	uint32_t bar0 = pciReadBar(bus, device, function, 0);
-	kprintf("    BAR0: 0x%x\n", decodeBar(bar0));
+	kprintf("    Header Type: 0x%x\n", pd.header_type);
+	kprintf("    Class Code: 0x%x\n", pd.class_code);
+	kprintf("    Sub Class: 0x%x\n", pd.sub_class);
 #endif
 	
 
@@ -204,12 +203,15 @@ void pciCheckDevice(uint8_t bus, uint8_t device) {
 			// Slow to call this every time
 			PCIDevice tmp_pd = pciGetDevice(bus, device, function);
 			if(tmp_pd.vendor_id != 0xffff){ 
-//				kprintf("    Function %d:\n", function);
+//#if DEBUG
+				kprintf("    Function %d:\n", function);
+				printDevice(tmp_pd, "    ");
+//#endif
+
 				pciCheckFunction(bus, device, function);
-//				printDevice(tmp_pd, "    ");
 
 				if(tmp_pd.class_code == 0x01 && tmp_pd.sub_class == 0x01)
-					handleDistController(pd);
+					handleDistController(tmp_pd);
 
 #if DEBUG
 				kprintf("Valid VendorID: %x, DeviceId: 0x%x\n", vendor_id, device_id);

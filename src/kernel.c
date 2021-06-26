@@ -2,7 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <ata.h>
+#include <timer.h>
+#include <gdt.h>
 #include <cpuid.h>
 #include <gdt.h>
 #include <idt.h>
@@ -13,8 +14,12 @@
 #include <memory.h>
 #include <pci.h>
 #include <pic.h>
-#include <sknyfs.h>
-#include <timer.h>
+#include <ata.h>
+#include <io.h>
+#include <kshell.h>
+#include <memory.h>
+#include <idt.h>
+#include <kheap.h>
 #include <timer.h>
 
 #if defined(__linux__)
@@ -81,7 +86,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	//loadCpuid();
 	//cpuidPrintVendor();
 
-	pciCheckAllBuses();
+	//pciCheckAllBuses();
 
     // Ensure there's a hard drive loaded
     if (!ide_devices[0].reserved) {
