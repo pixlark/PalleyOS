@@ -101,7 +101,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
             kprintf("(!) Error formatting filesystem!\n  %s\n", sknyStatusToString(status));
             while (true);
         }
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 64; i++) {
             if ((status = sknyCreateFile(&handle, "blah.txt")) != SKNY_STATUS_OK) {
                 kprintf("(!) Error creating file #%d!\n  %s\n", i, sknyStatusToString(status));
                 while(true);

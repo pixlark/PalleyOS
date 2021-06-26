@@ -118,6 +118,7 @@ static SknyStatus markChunkAsUsed(SknyHandle* handle, ChunkLocation chunk_number
 }
 
 static SknyStatus searchFileMap(SknyHandle* handle, FileIndex* ret) {
+    (void) handle;
     for (ChunkLocation chunk_index = 0; chunk_index < CHUNKS_IN_FILE_MAP; chunk_index++) {
         FileMetadata files[FILES_PER_CHUNK];
         AbsoluteLocation location = FILE_MAP_BEGIN + (chunk_index * CHUNK_SIZE);
@@ -126,7 +127,7 @@ static SknyStatus searchFileMap(SknyHandle* handle, FileIndex* ret) {
             ide_print_error(handle->drive, err);
             return SKNY_READ_FAILURE;
         }
-        for (uint32_t file_index; file_index < FILES_PER_CHUNK; file_index++) {
+        for (uint32_t file_index = 0; file_index < FILES_PER_CHUNK; file_index++) {
             FileMetadata file = files[file_index];
             kprintf("file %u: name (%s) location (%u)\n", (chunk_index * FILES_PER_CHUNK) + file_index, file.name, file.location);
             if (file.name[0] == '\0') {
@@ -189,6 +190,7 @@ SknyStatus sknyCreateFile(SknyHandle* handle, const char* name) {
     markChunkAsUsed(handle, available_chunk);
     
     FileMetadata file_metadata;
+    kmemset(file_metadata.name, 0, 252);
     kstrncpy(file_metadata.name, name, 252);
     file_metadata.location = available_chunk;
     writeFileMetadata(handle, file_index, &file_metadata);
