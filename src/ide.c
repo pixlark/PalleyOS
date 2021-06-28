@@ -129,7 +129,6 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 #define BMIDE_ACTIVE    1<<0
 #define BMIDE_START_STOP 1<<0
 
-#define NUM_IDE_DEVICES     4   // This should be constant
 #define NUM_IDE_CHANNELS    2   // This should be constant
 #define IDE_SECTOR_SIZE   512
 
