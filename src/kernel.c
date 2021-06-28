@@ -2,24 +2,25 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <timer.h>
-#include <gdt.h>
 #include <cpuid.h>
 #include <gdt.h>
+#include <gdt.h>
+#include <ide.h>
+#include <idt.h>
 #include <idt.h>
 #include <io.h>
+#include <io.h>
 #include <kheap.h>
+#include <kheap.h>
+#include <kshell.h>
 #include <kstdio.h>
 #include <kstdlib.h>
 #include <memory.h>
+#include <memory.h>
 #include <pci.h>
 #include <pic.h>
-#include <ata.h>
-#include <io.h>
-#include <kshell.h>
-#include <memory.h>
-#include <idt.h>
-#include <kheap.h>
+#include <sknyfs.h>
+#include <timer.h>
 #include <timer.h>
 
 #if defined(__linux__)
@@ -29,16 +30,6 @@
 #if !defined(__i386__)
 #error "must use x86"
 #endif
-
-void testRealloc(int change) {
-    void* ptr = kheapAlloc(100);
-    kprintf("  = BEFORE =\n");
-    kheapDump();
-    ptr = kheapRealloc(ptr, 100 + change);
-    kprintf("  = AFTER =\n");
-    kheapDump();
-    kheapFree(ptr);
-}
 
 void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     // Get RAM info from GRUB
@@ -57,36 +48,16 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	/* Init PIT */
 	initPITTimer();
     
-    
     // Inform the memory unit of our physical memory situation
     loadPhysicalMemoryRegionDescriptors(multiboot_info);
 
     // Now, setup paging so we can use our physical memory
     setupPaging();
 
-    kheapInit();
-    
-    {
-        // Test heap
-        kprintf("=== SAME SIZE ALLOCATION ===\n");
-        testRealloc(0);
-        kprintf("=== INCREASING ALLOCATION ===\n");
-        testRealloc(100);
-        kprintf("=== DECREASING ALLOCATION ===\n");
-        testRealloc(-50);
-
-        kprintf("=== ALIGNED ALLOCATION ===\n");
-        kheapAlignedAlloc(100, 512);
-        kheapDump();
-    }
-
-	/* Init Timer and PIT */
-	//initPITTimer();
-
 	//loadCpuid();
 	//cpuidPrintVendor();
 
-	//pciCheckAllBuses();
+	pciCheckAllBuses();
 
     // Ensure there's a hard drive loaded
     if (!ide_devices[0].reserved) {

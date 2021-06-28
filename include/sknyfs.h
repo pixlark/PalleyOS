@@ -13,7 +13,8 @@ typedef enum {
     SKNY_STATUS_OK,
     SKNY_WRITE_FAILURE,
     SKNY_READ_FAILURE,
-    SKNY_FILESYSTEM_FULL
+    SKNY_FILESYSTEM_FULL,
+    SKNY_FILE_NOT_FOUND
 } SknyStatus;
 
 extern const char* sknyStatusToString(SknyStatus status);

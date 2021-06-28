@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#include <ata.h>
+#include <ide.h>
 #include <kstdio.h>
 #include <sknyfs.h>
 
@@ -15,12 +15,12 @@ typedef uint32_t AbsoluteLocation; // Indexes disk by byte
 
 typedef uint32_t FileIndex; // Indexes file map
 
-// Must be a multiple of ATA_SECTOR_SIZE! (512 bytes)
+// Must be a multiple of IDE_SECTOR_SIZE! (512 bytes)
 // Must be a multiple of sizeof(FileMetadata)! (256 bytes)
 //#define CHUNK_SIZE (16 * 1024 * 1024)
 #define CHUNK_SIZE 1024
 
-#define SECTORS_PER_CHUNK (CHUNK_SIZE / ATA_SECTOR_SIZE)
+#define SECTORS_PER_CHUNK (CHUNK_SIZE / IDE_SECTOR_SIZE)
 
 #define CHUNKS_IN_ALLOCATION_MAP (16)
 #define CHUNKS_IN_FILE_MAP       (16)
@@ -59,9 +59,9 @@ static SknyStatus searchAllocationMap(SknyHandle* handle, ChunkLocation* ret) {
     for (uint32_t i = 0; i < CHUNKS_IN_ALLOCATION_MAP; i++) {
         uint8_t map_chunk[CHUNK_SIZE];
         AbsoluteLocation read_location = ALLOCATION_MAP_BEGIN + (i * CHUNK_SIZE);
-        uint8_t err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, read_location, map_chunk);
-        if (err != 0) {
-            ide_print_error(handle->drive, err);
+        ATAError err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, read_location, map_chunk);
+        if (err != NoError) {
+            idePrintError(handle->drive, err);
             return SKNY_READ_FAILURE;
         }
         for (uint32_t j = 0; j < CHUNK_SIZE; j++) {
@@ -101,30 +101,29 @@ static SknyStatus markChunkAsUsed(SknyHandle* handle, ChunkLocation chunk_number
     }
     kprintf("\n");*/
     AbsoluteLocation map_chunk_location = ALLOCATION_MAP_BEGIN + (map_chunk * CHUNK_SIZE);
-    uint8_t err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, map_chunk_location, map_chunk_buffer);
-    if (err != 0) {
-        ide_print_error(handle->drive, err);
+    ATAError err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, map_chunk_location, map_chunk_buffer);
+    if (err != NoError) {
+        idePrintError(handle->drive, err);
         return SKNY_READ_FAILURE;
     }
     // Set the bit
     map_chunk_buffer[byte_offset] |= (1 << bit_offset);
     // Write the chunk back
     err = ideWriteSectors(handle->drive, SECTORS_PER_CHUNK, map_chunk_location, map_chunk_buffer);
-    if (err != 0) {
-        ide_print_error(handle->drive, err);
+    if (err != NoError) {
+        idePrintError(handle->drive, err);
         return SKNY_WRITE_FAILURE;
     }
     return SKNY_STATUS_OK;
 }
 
 static SknyStatus searchFileMap(SknyHandle* handle, FileIndex* ret) {
-    (void) handle;
     for (ChunkLocation chunk_index = 0; chunk_index < CHUNKS_IN_FILE_MAP; chunk_index++) {
         FileMetadata files[FILES_PER_CHUNK];
         AbsoluteLocation location = FILE_MAP_BEGIN + (chunk_index * CHUNK_SIZE);
-        uint8_t err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
-        if (err != 0) {
-            ide_print_error(handle->drive, err);
+        ATAError err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
+        if (err != NoError) {
+            idePrintError(handle->drive, err);
             return SKNY_READ_FAILURE;
         }
         for (uint32_t file_index = 0; file_index < FILES_PER_CHUNK; file_index++) {
@@ -147,15 +146,15 @@ static writeFileMetadata(SknyHandle* handle, FileIndex file_index, FileMetadata*
     ChunkLocation chunk_offset = file_index / FILES_PER_CHUNK;
     AbsoluteLocation location = FILE_MAP_BEGIN + (chunk_offset * CHUNK_SIZE);
     FileMetadata files[FILES_PER_CHUNK];
-    uint8_t err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
-    if (err != 0) {
-        ide_print_error(handle->drive, err);
+    ATAError err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
+    if (err != NoError) {
+        idePrintError(handle->drive, err);
         return SKNY_READ_FAILURE;
     }
     files[file_index % FILES_PER_CHUNK] = *file_metadata;
     err = ideWriteSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
-    if (err != 0) {
-        ide_print_error(handle->drive, err);
+    if (err != NoError) {
+        idePrintError(handle->drive, err);
         return SKNY_WRITE_FAILURE;
     }
     return SKNY_STATUS_OK;
@@ -198,20 +197,55 @@ SknyStatus sknyCreateFile(SknyHandle* handle, const char* name) {
     return SKNY_STATUS_OK;
 }
 
+static SknyStatus searchForFile(SknyHandle* handle, const char* name, FileIndex* ret) {
+    for (ChunkLocation chunk_index = 0; chunk_index < CHUNKS_IN_FILE_MAP; chunk_index++) {
+        FileMetadata files[FILES_PER_CHUNK];
+        AbsoluteLocation location = FILE_MAP_BEGIN + (chunk_index * CHUNK_SIZE);
+        ATAError err = ideReadSectors(handle->drive, SECTORS_PER_CHUNK, location, (uint8_t*) files);
+        if (err != NoError) {
+            idePrintError(handle->drive, err);
+            return SKNY_READ_FAILURE;
+        }
+        for (uint32_t file_index = 0; file_index < FILES_PER_CHUNK; file_index++) {
+            FileMetadata file = files[file_index];
+            if (kstrcmp(name, file.name) == 0) {
+                *ret = (chunk_index * FILES_PER_CHUNK) + file_index;
+                return SKNY_STATUS_OK;
+            }
+        }
+    }
+    return SKNY_FILESYSTEM_FULL;
+}
+
+SknyStatus sknyWriteFile(SknyHandle* handle, const char* name) {
+    //
+    // Does the file exist?
+    //
+    FileIndex file_index;
+    SknyStatus status = searchForFile(handle, name, &file_index);
+    if (status != SKNY_STATUS_OK) {
+        return status;
+    }
+
+    //
+    // Write to the file
+    //
+}
+
 // Very slow!!
-static uint8_t clearChunk(SknyHandle* handle, ChunkLocation chunk, uint8_t byte) {
-    uint8_t buffer[ATA_SECTOR_SIZE];
+static ATAError clearChunk(SknyHandle* handle, ChunkLocation chunk, uint8_t byte) {
+    uint8_t buffer[IDE_SECTOR_SIZE];
     // TODO(Paul): get memset from alex!!
-    for (uint32_t i = 0; i < ATA_SECTOR_SIZE; i++) {
+    for (uint32_t i = 0; i < IDE_SECTOR_SIZE; i++) {
         buffer[i] = byte;
     }
     for (uint32_t i = 0; i < SECTORS_PER_CHUNK; i++) {
-        uint8_t err = ideWriteSectors(
+        ATAError err = ideWriteSectors(
             handle->drive, 1,
-            (chunk * CHUNK_SIZE) + (i * ATA_SECTOR_SIZE),
+            (chunk * CHUNK_SIZE) + (i * IDE_SECTOR_SIZE),
             buffer
         );
-        if (err != 0) {
+        if (err != NoError) {
             return err;
         }
     }
@@ -236,9 +270,9 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
     
     // Initialize allocation map
     for (ChunkLocation i = 0; i < CHUNKS_IN_ALLOCATION_MAP; i++) {
-        uint8_t write_err = clearChunk(handle, i, 0);
-        if (write_err != 0) {
-            ide_print_error(handle->drive, write_err);
+        ATAError write_err = clearChunk(handle, i, 0);
+        if (write_err != NoError) {
+            idePrintError(handle->drive, write_err);
             return SKNY_WRITE_FAILURE;
         }
     }
@@ -249,9 +283,9 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
 
     // Initialize file map
     for (ChunkLocation i = 0; i < CHUNKS_IN_FILE_MAP; i++) {
-        uint8_t write_err = clearChunk(handle, CHUNKS_IN_ALLOCATION_MAP + i, 0);
-        if (write_err != 0) {
-            ide_print_error(handle->drive, write_err);
+        ATAError write_err = clearChunk(handle, CHUNKS_IN_ALLOCATION_MAP + i, 0);
+        if (write_err != NoError) {
+            idePrintError(handle->drive, write_err);
             return SKNY_WRITE_FAILURE;
         }
     }
