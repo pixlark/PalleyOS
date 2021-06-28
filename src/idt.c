@@ -141,7 +141,7 @@ void idtInit() {
 	idtLoad(&idt_info);
 
 	outb(PIC1_DATA, 0x3C);
-	outb(PIC2_DATA, 0xFF);
+	outb(PIC2_DATA, 0x00);
 
 	kprintf("idt_entries loc: 0x%x\n", idt_entries);
 	sti();
@@ -200,6 +200,6 @@ void remapPIC(int offset1, int offset2) {
 	outb(PIC2_DATA, ICW4_8086);
 	ioWait();
 
-	outb(PIC1_DATA, 0xFC);
-	outb(PIC2_DATA, 0xFF);
+	outb(PIC1_DATA, 0x00);
+	outb(PIC2_DATA, 0x00);
 }

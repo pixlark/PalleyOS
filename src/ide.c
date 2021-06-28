@@ -81,6 +81,8 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 #define ATA_IDENT_SECTORS      12
 #define ATA_IDENT_SERIAL       20
 #define ATA_IDENT_MODEL        54
+#define ATA_IDENT_MULTI_DMA    63
+#define ATA_IDENT_UDMA         88
 #define ATA_IDENT_CAPABILITIES 98
 #define ATA_IDENT_FIELDVALID   106
 #define ATA_IDENT_MAX_LBA      120
@@ -154,7 +156,7 @@ static PRD prdt[1] __attribute__((aligned (64*1024)));
 static bool received_interrupt = false;
 
 /* ===== Function Declarations ===== */
-static void ideSendPRDT(uint8_t drive, uint32_t prdt_addr);
+static ATAError idePolling (uint8_t channel, bool advanced_check);
 
 // Write a byte of data to a Disk Device register
 static void ideWrite(uint8_t channel, uint8_t reg, uint8_t data) {
@@ -324,6 +326,12 @@ static void ideDeviceInitialize (uint8_t channel, uint8_t drive) {
 
     // v. Read the Identification Space of the Device	
     ideReadBuffer(channel, ATA_REG_DATA, (uint32_t*) ide_buf, 128);	
+    //uint16_t tmp_buf[256];
+    //for(int i = 0; i < 256; i++) {
+    //    tmp_buf[i] = inw(0x1f0);
+    //    //kprintf("ide_buf[%d] = 0x%x\n", i, ide_buf[i]);
+    //}
+
 
     // vi. Read Device Parameters
     ide_devices[count].reserved     = 1;
@@ -343,6 +351,10 @@ static void ideDeviceInitialize (uint8_t channel, uint8_t drive) {
         uint32_t lba28_size = *((uint32_t*)(ide_buf + ATA_IDENT_MAX_LBA));
         ide_devices[count].size = lba28_size;
     }
+
+    ide_devices[count].multi_word_dma_supported = *((uint16_t *)ide_buf + ATA_IDENT_MULTI_DMA);
+    ide_devices[count].udma_supported = *((uint16_t *)ide_buf + ATA_IDENT_UDMA);
+
 
     // viii. String indicated model of device
     for (int k = 0; k < DEVICE_MODEL_STR_LEN; k += 2){
@@ -371,8 +383,8 @@ void ideInitialize (uint32_t bars[6]) {
     setIOPortsFromBars(bars);
 
 	// 2. Disable IRQs in both channels
-//	ideWrite(ATA_PRIMARY  , ATA_REG_CONTROL, 2); // setting nIEN (no_interrupt) in Control Port
-//	ideWrite(ATA_SECONDARY, ATA_REG_CONTROL, 2); // setting nIEN (no_interrupt) in Control Port
+    ideWrite(ATA_PRIMARY  , ATA_REG_CONTROL, 0); // setting nIEN (no_interrupt) in Control Port
+	ideWrite(ATA_SECONDARY, ATA_REG_CONTROL, 0); // setting nIEN (no_interrupt) in Control Port
 
 	// 3. Detect possible ATA or ATAPI Devices
 	for (int channel = 0; channel < 2; channel++) {
@@ -503,6 +515,7 @@ static void sendTranferCommand (uint8_t drive, IDETransferInfo* transfer_info) {
     else if (lba_mode == LBA28  && dma == true  && dir == IDEWrite) cmd = ATA_CMD_WRITE_DMA;
     else cmd = ATA_CMD_WRITE_DMA_EXT;
 
+    kprintf("COMMAND: 0x%x\n", cmd);
     ideWrite(ide_devices[drive].channel, ATA_REG_COMMAND, cmd);
 }
 
@@ -589,6 +602,31 @@ static ATAError ideReadSectorsFromBuffer(uint8_t drive, uint16_t num_sects, char
     return err;
 }
 
+/* ===== PRDT ===== */
+static void printPRDTFromDrive(uint8_t drive) {
+    uint8_t channel = ide_devices[drive].channel;
+    uint16_t base_port = channels[channel].bmide;
+    PRD* prdt = (PRD*)(uintptr_t)inl(base_port+4);
+    kprintf("prdt: 0x%x\n", prdt);
+    kprintf("prdt[0].address: 0x%x\n", prdt[0].address);
+    kprintf("prdt[0].byte_count: 0x%x\n", prdt[0].byte_count);
+    kprintf("prdt[0].reserved: 0x%x\n", prdt[0].reserved);
+}
+
+// Sends Physical Region Descriptor Table address to DMA supporting device
+static void ideSendPRDT(uint8_t drive, uint32_t prdt_addr) {
+   // Set bus master prdt register 
+    uint8_t channel = ide_devices[drive].channel;
+    uint16_t base_port = channels[channel].bmide;
+    outl(base_port + 4, prdt_addr);
+    uint32_t set_prdt = inl(base_port+4);
+    if(set_prdt != prdt_addr)
+        kprintf("ERROR setting PRDT on drive %d, BMIDE: 0x%x\n", drive, base_port);
+}
+
+
+
+/* ===== ACCESS ===== */
 // Defined in ata_helpers.s
 extern void ataReadFromPort(uint16_t port, char* buffer, uint32_t num_reads);
 extern void ataWriteToPort(uint16_t port, char* buffer, uint32_t num_reads);
@@ -676,25 +714,24 @@ ATAError ideWriteSectors(uint8_t drive, uint8_t num_sects, uint32_t lba,
 	}
 }
 
-static void printPRDTFromDrive(uint8_t drive) {
-    uint8_t channel = ide_devices[drive].channel;
-    uint16_t base_port = channels[channel].bmide;
-    PRD* prdt = (PRD*)(uintptr_t)inl(base_port+4);
-    kprintf("prdt: 0x%x\n", prdt);
-    kprintf("prdt[0].address: 0x%x\n", prdt[0].address);
-    kprintf("prdt[0].byte_count: 0x%x\n", prdt[0].byte_count);
-    kprintf("prdt[0].reserved: 0x%x\n", prdt[0].reserved);
-}
+static void printBmideStatus(bmide_base_port) {
+    uint8_t status = inb(bmide_base_port + BMIDE_REG_STATUS);
+    kprintf("BMIDE Status:\n");
+    if(status & 4)
+        kprintf("   - Interrupt: SET\n");
+    else
+        kprintf("   - Interrupt: CLEAR\n");
 
-// Sends Physical Region Descriptor Table address to DMA supporting device
-static void ideSendPRDT(uint8_t drive, uint32_t prdt_addr) {
-   // Set bus master prdt register 
-    uint8_t channel = ide_devices[drive].channel;
-    uint16_t base_port = channels[channel].bmide;
-    outl(base_port + 4, prdt_addr);
-    uint32_t set_prdt = inl(base_port+4);
-    if(set_prdt != prdt_addr)
-        kprintf("ERROR setting PRDT on drive %d, BMIDE: 0x%x\n", drive, base_port);
+    if(status & 2)
+        kprintf("   - Error: SET\n");
+    else
+        kprintf("   - Error: CLEAR\n");
+
+    if(status & 1)
+        kprintf("   - BMIDE Active: SET\n");
+    else
+        kprintf("   - BMIDE Active: CLEAR\n");
+
 }
 
 // Reads from ATA drive using DMA.
@@ -707,15 +744,15 @@ uintptr_t ataReadDMA(uint8_t drive, uint32_t size, uint32_t lba){
     }
 
     waitForBSYToClear(drive);
-
-    // TODO: Check if device supports DMA, for now we assume that is does
-
     uint16_t num_sects = (size/512);
     uint8_t  channel = ide_devices[drive].channel;
     uint16_t bmide_base_port = channels[channel].bmide;
 
+    // TODO: Check if device supports DMA, for now we assume that is does
+
     stopCurrentDMATransfers(bmide_base_port);
 
+    kprintf("STATUS: 0x%x\n", inb(bmide_base_port+2));
     uintptr_t prdt_loc = preparePRDT(size);
     
     ideSendPRDT(drive, prdt_loc);
@@ -725,6 +762,7 @@ uintptr_t ataReadDMA(uint8_t drive, uint32_t size, uint32_t lba){
 
     setBmideDMADirection(bmide_base_port, IDERead);
     clearBmideErrorAndInterrupt(bmide_base_port);
+
     
     IDETransferInfo transfer_info = {0};
     transfer_info.lba = lba;
@@ -734,14 +772,24 @@ uintptr_t ataReadDMA(uint8_t drive, uint32_t size, uint32_t lba){
     generateLBAIO(drive, &transfer_info);
 
     selectDrive(drive, &transfer_info);
+
+    ideWrite(ATA_PRIMARY  , ATA_REG_CONTROL, 0); // setting nIEN (no_interrupt) in Control Port
+
     ideSendLBA(drive, num_sects, &transfer_info);
 
     sendTranferCommand(drive, &transfer_info);
     waitForBSYToClear(drive);
 
     startDMATransfer(bmide_base_port);
+    
+    pitSleep(250);
+    if(!received_interrupt){
+        kprintf("STATUS: 0x%x\n", inb(bmide_base_port+2));
+    }
 
-    while(!received_interrupt);
+    while(!received_interrupt){
+        // Read Alternate Status Register
+    }
 
     waitForBSYToClear(drive);    
 

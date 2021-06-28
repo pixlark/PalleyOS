@@ -80,7 +80,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 
 	pciCheckAllBuses();
 
-    ata_test();t
+    ata_test();
     
 	kShellStart();
 }

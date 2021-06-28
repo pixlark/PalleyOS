@@ -39,6 +39,8 @@ struct IDEDevice {
 	uint32_t command_sets;		// Command Sets Supported
 	uint32_t size;				// Size in sectors	
 	unsigned char model[41]; 	// Model string
+    uint8_t  multi_word_dma_supported;    // BITS 2:0 indicate DMA modes 2-0 supported (or not)
+    uint8_t  udma_supported;    // BITS 4:0 indicate UDMA modes 4-0 supported (or not)
 };
 
 typedef struct IDEDevice IDEDevice;
