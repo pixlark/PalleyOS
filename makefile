@@ -9,6 +9,7 @@ ISO_DIR=isodir
 
 STD_LIB_DIR=stdlib
 TIMER_DIR=timer
+
 OBJ_DIR=obj
 OBJ_DIRS := $(patsubst %, $(OBJ_DIR)/%, timer stdlib)
 DIRS = $(OBJ_DIR) \

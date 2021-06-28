@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+size_t kstrlen(const char* str);
+
 // Compares the c strings str2 and str2
 // Continues comparison while the characters in comparison are equal,
 // or a null byte is encountered
@@ -23,6 +25,10 @@ size_t kmemcpy(void* dest, const void* src, size_t num);
 // Copies chars from src to destination until a null character is hit
 // returns the number of chars written
 size_t kstrcpy(char* dest, const char* src);
+
+// Like kstrcpy, but copies at most `max` characters from src to
+// destination
+size_t kstrncpy(char* dest, const char* src, size_t max);
 
 // Sets num bytes to value at dest
 // returns the number of chars written

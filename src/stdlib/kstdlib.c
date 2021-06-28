@@ -3,6 +3,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+size_t kstrlen(const char* str) {
+    size_t counter = 0;
+    while (*str != '\0') {
+        counter++;
+        str++;
+    }
+    return counter;
+}
 
 // Compares the c strings str2 and str2
 // Continues comparison while the characters in comparison are equal,
@@ -42,12 +50,28 @@ size_t kmemcmp (const void* ptr1, const void* ptr2, size_t num) {
 // returns the number of chars written
 size_t kstrcpy (char* dest, const char* src) {
     size_t num_written = 0;
-	while(*src != '\0' && num_written < sizeof(size_t)){
+	while(*src != '\0'){
         *dest = *src;
 		dest++;
 		src++;
+        num_written++;
 	}
+    *dest = '\0';
 	return num_written;
+}
+
+// Like kstrcpy, but copies at most `max` characters from src to
+// destination
+size_t kstrncpy(char* dest, const char* src, size_t max) {
+    size_t num_written = 0;
+    while (*src != '\0' && num_written < max - 1) {
+        *dest = *src;
+        dest++;
+        src++;
+        num_written++;
+    }
+    *dest = '\0';
+    return num_written;
 }
 
 // Copies num chars from src to dest

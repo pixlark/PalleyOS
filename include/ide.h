@@ -19,6 +19,8 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 #include <stddef.h>
 #include <stdint.h>
 
+#define IDE_SECTOR_SIZE 512
+
 struct IDEChannelRegisters {
 	uint16_t base; 			// I/O Base	
 	uint16_t ctrl;		    // Control Base	
@@ -42,6 +44,9 @@ struct IDEDevice {
 
 typedef struct IDEDevice IDEDevice;
 
+#define NUM_IDE_DEVICES     4   // This should be constant
+extern struct IDEDevice ide_devices[NUM_IDE_DEVICES];
+
 struct PRD {
     uint32_t address;
     uint16_t byte_count;
@@ -50,6 +55,7 @@ struct PRD {
 
 typedef struct PRD PRD;
 
+// TODO: Add namespace prefixing here
 enum ATAError {
     NoError,
     GeneralError,
