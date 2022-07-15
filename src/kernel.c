@@ -16,6 +16,7 @@
 #include <idt.h>
 #include <kheap.h>
 #include <timer.h>
+#include <syscall.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -35,31 +36,53 @@ void testRealloc(int change) {
     kheapFree(ptr);
 }
 
+extern void jump_to_ring3(uint32_t function_ptr);
+static void userModeFunc() {
+    __asm__ volatile (" \n"
+                      " pushl $0xAA \n "
+                      " pushl $0xBB \n "
+                      " pushl $0xCC \n "
+                      " int $0x80 \n "
+                      " pop %eax \n "
+                      " pop %eax \n "
+                      " pop %eax \n " );
+}
+
 void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
+    
     // Get RAM info from GRUB
     if (magic != 0x2BADB002) {
         return;
     }
-
+    kheapInit();
+    tio_init();
+    
+    for(int i = 0; i < 30; i++) {
+        kprintf("%x\n", i); 
+    }
+    
 	/* Set up IDT */
 	kprintf("Setting up the IDT\n");
 	idtInit();
-
+    
 	/* Set up GDT */	
 	kprintf("Setting up GDT\n");
 	gdtInit();
-
+    
+    
 	/* Init Timer and PIT */
     kprintf("Initializing PIT Timer\n");
 	initPITTimer();
     
     // Inform the memory unit of our physical memory situation
     loadPhysicalMemoryRegionDescriptors(multiboot_info);
-
+    
     // Now, setup paging so we can use our physical memory
     setupPaging();
-
-    kheapInit();
+    
+    syscallsInit();
+    /*
+    kheapInit();*/
     
     {
         // Test heap
@@ -69,18 +92,22 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
         testRealloc(100);
         kprintf("=== DECREASING ALLOCATION ===\n");
         testRealloc(-50);
-
+        
         kprintf("=== ALIGNED ALLOCATION ===\n");
         kheapAlignedAlloc(100, 512);
         kheapDump();
     }
-
+    
 	loadCpuid();
 	cpuidPrintVendor();
-
+    
 	pciCheckAllBuses();
-
-    ata_test();t
+    
+    kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
+    kprintf("userModeFunc: 0x%x\n", userModeFunc);
+    kprintf("&userModeFunc: 0x%x\n", &userModeFunc);
+    
+    jump_to_ring3(userModeFunc);
     
 	kShellStart();
 }

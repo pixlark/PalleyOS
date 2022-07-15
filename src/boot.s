@@ -12,6 +12,8 @@
 
 .section .bss
 .align 16
+.global stack_top
+.global stack_bottom
 stack_bottom:
 .skip 1024*16 # 16 KiB 
 stack_top:

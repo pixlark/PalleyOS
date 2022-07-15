@@ -33,3 +33,4 @@ size_t kstrncpy(char* dest, const char* src, size_t max);
 // Sets num bytes to value at dest
 // returns the number of chars written
 void kmemset(void* dest, uint8_t value, size_t num);
+void kmemset_u16(void* dest, uint16_t value, size_t num);

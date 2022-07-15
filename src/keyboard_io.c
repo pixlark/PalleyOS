@@ -88,20 +88,20 @@ struct __attribute__((__packed__)) spec_keys_mapped {
 }; 
 
 const struct spec_keys_mapped special_keys_to_mapped = {
-	 .keypad_fslash = 0x32,	// (keypad) '/'
-	 .padding_1 = {0, 0},
-	 .ralt = 0xa4, 	
-	 .padding_2 = {0, 0, 0, 0, 0, 0},
-	 .home = 0x2f,   
-	 .up_arrow = 0x8c,	
-	 .page_up = 0x30,	
-	 .left_arrow = 0xa8, 	
-	 .right_arrow = 0xaa, 	
-	 .end = 0x4f,  	
-	 .down_arrow = 0xa9, 
-	 .page_down  = 0x50,	
-	 .insert = 0x2e,
-	 .del = 0x4e
+    .keypad_fslash = 0x32,	// (keypad) '/'
+    .padding_1 = {0, 0},
+    .ralt = 0xa4, 	
+    .padding_2 = {0, 0, 0, 0, 0, 0},
+    .home = 0x2f,   
+    .up_arrow = 0x8c,	
+    .page_up = 0x30,	
+    .left_arrow = 0xa8, 	
+    .right_arrow = 0xaa, 	
+    .end = 0x4f,  	
+    .down_arrow = 0xa9, 
+    .page_down  = 0x50,	
+    .insert = 0x2e,
+    .del = 0x4e
 };
 
 uint8_t set1ToMapped(uint8_t scancode1) {
@@ -145,11 +145,11 @@ void keyboardInterruptHandler(){
 uint8_t ps2SendSubCommand(uint8_t command, int8_t subcommand) {
 	cli();
 	outb(PS2, command);
-
+    
 	ioWait();
 	if(subcommand >= 0)
 		outb(PS2, subcommand);
-
+    
 	int count = 0;
 	int ret;
 	while(count < 10){
@@ -157,7 +157,7 @@ uint8_t ps2SendSubCommand(uint8_t command, int8_t subcommand) {
 		if(ret == ACK || ret == ECHO) break;
 		count ++;
 	}
-
+    
 	if(count >= 10) {
 		return 1;
 	}
@@ -196,29 +196,29 @@ uint8_t ps2SendCommand(uint8_t comm, bool returns){
 	ioWait();
 	int num_tries = 0;
 	uint8_t out_buff_status = 0;
-
+    
 	if(!returns) return 0xff;
 	
 	// Wait until status register says we can read
 	while(num_tries++ < 10)
         if((out_buff_status = inb(0x64) & 1)) break; 
-
+    
 	if(out_buff_status)
 		return inb(PS2);
-
+    
 	return 0xff;
 }
 
 /* ===== INITIALISE PS/2 ===== */
 void ps2Init() {
-
+    
 	// Disable Devices
 	ps2SendCommand(0xAD, false);
 	ps2SendCommand(0xA7, false);
-
+    
 	// Flush the Output Buffer
 	inb(0x60);
-
+    
 	// Set controller configuration byte
 	uint8_t ccb = ps2SendCommand(0x20, true);
 	ccb &= ~(1<<6); // translation
@@ -226,22 +226,22 @@ void ps2Init() {
 	outb(0x64, 0x60);
 	outb(0x60, ccb);
 	ioWait();
-
+    
 	uint8_t test = 0;
 	if((test = ps2SendCommand(0xAA, true) != 0x55))
 		kprintf("ERROR: ps2 controller test failed\n");
- 
+    
 	if((test = ps2SendCommand(0xAB, true) != 0x0))
 		kprintf("ERROR: ps2 port 1 test failed: %d\n", test);
-
+    
 	if((test = ps2SendCommand(0xA9, true) != 0x0))
 		kprintf("ERROR: ps2 port 2 test failed: %d\n", test);
-
+    
 	// Re-enable devices
 	ps2SendCommand(0xAE, false);
 	ps2SendCommand(0xA8, false);
-
-
+    
+    
 	if(ps2SendDevCommand(0xff) == 0xFD)
 		kprintf("ERROR: Failed to reset ps2 device 1\n");
 	
@@ -253,10 +253,10 @@ void ps2Init() {
 
 /* ===== INITIALISE KEYBOARD ===== */
 void kbInit() {
-	cli();
-
+    cli();
+    
 	ps2Init();
-
+    
 	uint8_t echo = ps2SendDevCommand(ECHO);
 	if(echo != 1)
 		kprintf("Echo to keyboard recieved\n");		
@@ -264,26 +264,26 @@ void kbInit() {
 		kprintf("Keyboard not responding...Returning\n");
 		return;
 	}
-
+    
 	kb_keyset = scancode_set1; 
 	kb_keyset_upper = uppercase_scancode_set1;
-
+    
 	ps2SetKeyset(1);
-
+    
 	int keycode_set = ps2GetKeyset();
 	if(keycode_set > 0){
 		if(keycode_set == 0x43) keycode_set = 1;
 		else if(keycode_set == 0x41) keycode_set = 2;
 		else if(keycode_set == 0x3f) keycode_set = 3;
-
+        
 		kprintf("Scan code set: 0x%x\n", keycode_set);
 	}else {
 		kprintf("Error getting scan code set\n");	
 	}
-
+    
 	keyboard_initialized = true;
 	sti();
-	tioEnableCursor();
+	tio_enable_cursor();
 }
 
 /* ===== HANDLING INPUT  ===== */
@@ -291,23 +291,23 @@ bool kbHasNewInput() { return queue_ridx != queue_widx; }
 
 MappedKey handleE0Key() {
 	MappedKey ret = {0};
-
+    
 	uint8_t curr_code = scancode_queue[queue_ridx++];
 	bool being_pressed = (curr_code & (1<<7)) == 0;
 	if(!being_pressed) curr_code ^= (1<<7);
-
+    
 	uint8_t mapped_code = specialToMapped(curr_code);
-
+    
 	ret.mapped_code = mapped_code;
 	ret.e0_key = true;
 	ret.printable = false;
 	ret.down_stroke = being_pressed;
 	ret.scancode = curr_code;
-
+    
 	key_states[mapped_code] = being_pressed;
-
+    
 	keyboard_state = KEYBOARD_STATE_NORMAL;
-
+    
 	return ret;
 }
 
@@ -317,34 +317,34 @@ static MappedKey handleUnknownKey(uint8_t scancode, uint8_t mapped_code, bool be
 	ret.printable = false;
 	ret.down_stroke = being_pressed;
 	ret.scancode = scancode;
-
+    
 	if(mapped_code != KEY_CAPS)
 		key_states[mapped_code] = being_pressed;
 	else if(being_pressed)
 		key_states[KEY_CAPS] = !key_states[KEY_CAPS];
-
+    
 	return ret;
 }
 
 // Returns 0 on non-printable characters 
 static MappedKey kbNextMappedKey() {
 	MappedKey ret = {0};
-
+    
 	if(queue_ridx == queue_widx){
 		sti();
 		while(queue_ridx == queue_widx);
 		cli();
 	}
-
+    
 	uint8_t curr_code = scancode_queue[queue_ridx++];
 	bool being_pressed = (curr_code & (1<<7)) == 0;
 	
 	if(curr_code == 0xE0) 
 		return handleE0Key();
-
+    
 	// Convert code from released to pressed
 	if(!being_pressed) curr_code ^= (1<<7);
-
+    
 	uint8_t mapped_code = set1ToMapped(curr_code);
 	if(scancode_set1[curr_code] == '?')
 		return handleUnknownKey(curr_code, mapped_code, being_pressed);
@@ -353,17 +353,17 @@ static MappedKey kbNextMappedKey() {
 	
 	if(being_pressed) {
 		if(key_states[KEY_L_SHIFT] || key_states[KEY_R_SHIFT] ||
-		key_states[KEY_CAPS])
+           key_states[KEY_CAPS])
 			ret.capitalized = true;
 		else
 			ret.capitalized = false;
 	}
-
+    
 	ret.scancode = curr_code;
 	ret.mapped_code = mapped_code;
 	ret.printable = true;
 	ret.down_stroke = being_pressed;
-
+    
 	return ret;
 }
 
@@ -378,61 +378,61 @@ void kbGetLine(char* buffer) {
             key = kbNextMappedKey();
             sti();	
         } else continue;
-
+        
         if(key.down_stroke == false) continue;
-    
+        
         if(!key.printable){ // Handle cursor movements
-
+            
             if(key.mapped_code == KEY_ARROW_LEFT) {
                 index --;
                 if(index < 0) index = 0;
-                tioDecCursor();
+                tio_cursor_dec();
             }else if(key.mapped_code == KEY_ARROW_RIGHT) {
                 index ++;
-                tioIncCursor();
+                tio_cursor_inc();
                 if(index > size-1) index = size-1;
             }else if(key.mapped_code == KEY_ARROW_UP) {
-				tioShiftTermLineProtected(1);
+				tio_shift_view(SHIFT_DIRECTION_UP, 1);
 			}else if(key.mapped_code == KEY_ARROW_DOWN) {
-				tioShiftTermLineProtected(-1);
+				tio_shift_view(SHIFT_DIRECTION_DOWN, 1);
 			}else if(key.mapped_code == KEY_BACKSPACE) {
 				if(index <= 0) continue;
-                tioShiftLeft();
+                tio_shift_left();
                 if(index != size-1){
                     for(int i = index-1; i < size-1; i++)
                         buffer[i] = buffer[i+1];
                 }
-
+                
                 index --; size--;
                 if(index < 0) index = 0;
                 if(size < 1) size = 1;
-
+                
                 buffer[size-1] = 0;
-                tioBackspace();
+                tio_backspace();
             }
-
+            
         } else {
             // If we are not at the end, shift everything over
             if(index != size-1) {
                 for(int i = size; i > index; i--)
                     buffer[i] = buffer[i-1];
-                tioShiftRight();
+                tio_shift_right();
             }
-
+            
             char ret;
             if(key.capitalized) ret = uppercase_scancode_set1[key.scancode]; 
             else ret = scancode_set1[key.scancode];
             buffer[index] = ret;
-
+            
             kprintf("%c", ret);
-
+            
             index++;
             size++;
             buffer[size-1] = 0;
         }
     }
-
-    tioIncCursor(size - index);
+    
+    tio_cursor_inc(size - index);
 }
 
 char kbGetChar() {
@@ -445,10 +445,10 @@ char kbGetChar() {
 			sti();	
 		}
 	}
-
+    
 	char ret;
 	if(key.capitalized) ret = uppercase_scancode_set1[key.scancode]; 
     else ret = scancode_set1[key.scancode];
-
+    
 	return ret;
 }

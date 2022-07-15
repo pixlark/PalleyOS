@@ -37,6 +37,13 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 	}
+
+    . = 0x80000000;
+
+    .program_text BLOCK(4K) : ALIGN(4K)
+    {
+        *(.program_text)
+    }
  
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */

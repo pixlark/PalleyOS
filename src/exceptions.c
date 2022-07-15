@@ -97,7 +97,7 @@ void generalProtFaultHandler(uint32_t err) {
 extern void pageFaultIsr();
 extern void handle_page_fault();
 void pageFaultHandler(uint32_t err) {
-    // TODO(Paul): Check error code for error type
+    // TODO(Brooke): Check error code for error type
     handle_page_fault();
 }
 #pragma GCC diagnostic push
@@ -138,7 +138,7 @@ void virtHandler() {
 }
 
 void addExceptionsHandlersToIdt() {
-
+    
 	addIsrToIdt(0, &divByZeroIsr, 0, TRAP_GATE_32);
 	addIsrToIdt(1, &debugIsr, 0, TRAP_GATE_32);
 	addIsrToIdt(3, &breakpointIsr, 0, TRAP_GATE_32);
@@ -157,7 +157,7 @@ void addExceptionsHandlersToIdt() {
 	addIsrToIdt(18, &machineCheckIsr, 0, TRAP_GATE_32);
 	addIsrToIdt(19, &simdFpeIsr, 0, TRAP_GATE_32);
 	addIsrToIdt(20, &virtIsr, 0, TRAP_GATE_32);
-
+    
 }
 
 

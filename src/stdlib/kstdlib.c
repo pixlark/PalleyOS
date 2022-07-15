@@ -35,7 +35,7 @@ size_t kstrcmp (const char* str1, const char* str2) {
 // **Note: unlike strcmp, this function does not stop comparing after finding
 // 		   a null character
 size_t kmemcmp (const void* ptr1, const void* ptr2, size_t num) {
-
+    
 	while(num) {
 		int diff = *((uint8_t*)ptr1) - *((uint8_t*)ptr2);		
 		if(diff != 0) return diff;
@@ -93,5 +93,14 @@ void kmemset(void* dest, uint8_t value, size_t num) {
 	while(num--){
         *((uint8_t*)dest) = value;
 		dest++;
+	}
+}
+
+// Sets num bytes to value at dest
+// returns the number of chars written
+void kmemset_u16(void* dest, uint16_t value, size_t num) {
+	while(num--){
+        *((uint16_t*)dest) = value;
+        dest = (uint16_t *)dest + 1;
 	}
 }

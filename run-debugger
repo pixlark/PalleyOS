@@ -1,0 +1,5 @@
+#!/bin/bash
+gnome-terminal -x make run-server
+gnome-terminal -x gdb build/palleyos.bin -ex 'target remote localhost:1234'
+
+

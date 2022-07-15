@@ -16,3 +16,11 @@ gdtFlush:
 	ljmp $0x08, $.reload_CS 
 .reload_CS:
 	ret
+
+.global tssFlush
+.type tssFlush, @function
+tssFlush:
+    mov $0x2B, %ax # fifth 8-byte selector. Or'ed with 3 to set RPL (requested privilege level)
+    ltr %ax # load task register, points to TSS, 5th element in GDT in our case 
+            # 0 indexed
+    ret
