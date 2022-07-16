@@ -6,6 +6,7 @@
 #include <exceptions.h>
 #include <io.h>
 #include <kstdio.h>
+#include <kstdlib.h>
 
 /* ===== PIC INITIALIZATION DEFINES ===== */
 #define PIC1			0x20	/* IO base Address for master PIC */
@@ -32,11 +33,11 @@
 
 
 struct IDTEntry {
-   uint16_t offset_1; // offset bits 0..15
-   uint16_t selector; // a code segment selector in GDT or LDT
-   uint8_t  zero;     // unused, set to 0
-   uint8_t  type_attr;// type and attributes, see below
-   uint16_t offset_2; // offset bits 16..31
+    uint16_t offset_low; // offset bits 0..15
+    uint16_t selector; // a code segment selector in GDT or LDT
+    uint8_t  zero;     // unused, set to 0
+    uint8_t  type_attr;// type and attributes, see below
+    uint16_t offset_high; // offset bits 16..31
 } __attribute__((packed));
 
 struct IDTInfo {
@@ -62,21 +63,25 @@ bool addIsrToIdt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 	if(num < 0) {
 		return false;	
 	}
-
-	idt_entries[num].offset_1 = ((uint32_t)func_ptr & 0xffff);
-	idt_entries[num].offset_2 = ((uint32_t)func_ptr & 0xffff0000) >> 16;
-
+    
+	idt_entries[num].offset_low = ((uint32_t)func_ptr & 0xffff);
+	idt_entries[num].offset_high = ((uint32_t)func_ptr & 0xffff0000) >> 16;
+    
 	idt_entries[num].zero = 0;
 	idt_entries[num].type_attr = (desc_level & 0x3) << 5 | (1 << 7);
 	idt_entries[num].type_attr |= gate_type & 0xf;
+    /*kprintf("ide_entries[0x%x] func_ptr = 0x%x\n", num, func_ptr);
+    kprintf("ide_entries[0x%x].type_attr = 0x%x\n", num, idt_entries[num].type_attr);
+    kprintf("desc_level = 0x%x\n", desc_level);
+    kprintf("gate_type = 0x%x\n", gate_type);*/
 	idt_entries[num].selector = 0x08;
-
+    
 	if(gate_type == INTERRUPT_GATE_16 || gate_type == INTERRUPT_GATE_32
-		|| gate_type == TRAP_GATE_16 || gate_type == TRAP_GATE_32)	
+       || gate_type == TRAP_GATE_16 || gate_type == TRAP_GATE_32)	
 		idt_entries[num].type_attr &= ~(1 << 4); 
 	else
 		idt_entries[num].type_attr |= (1 << 4); 
-
+    
 	return true;
 }
 
@@ -84,7 +89,7 @@ bool addIsrToIdt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 // to interrupts from that line
 void irqSetMask(uint8_t irq_line) {
 	uint16_t port;
-
+    
 	if(irq_line < 8)
 		port = PIC1_DATA;
 	else {
@@ -98,7 +103,7 @@ void irqSetMask(uint8_t irq_line) {
 // Clears a bit in the PIC, telling the CPU to listen to that irq_line
 void irqClearMask(uint8_t irq_line) {
     uint16_t port;
- 
+    
     if(irq_line < 8) {
         port = PIC1_DATA;
     } else {
@@ -118,33 +123,36 @@ extern void keyboardIsr(void);
 // Ide Controller DMA IRQ
 extern void ideIRQISR(void);
 
+extern void syscallIsr(void);
 
 /* ======== SETUP ======== */
 void idtInit() {
-	cli();
+	//cli();
 	remapPIC(0x20, 0x28);
-
+    
+    kmemset(idt_entries, 0x0, sizeof(IDTEntry) * 256);
+    
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.idt_addr = (uintptr_t) &idt_entries;
-
+    
     addExceptionsHandlersToIdt();
-
+    
 	addIsrToIdt(0x20, &PITIRQ, 0, INTERRUPT_GATE_32);
     addIsrToIdt(0x21, &keyboardIsr, 0, INTERRUPT_GATE_32);	
-
+    
     // Primary ATA Device after DMA transfer
     addIsrToIdt(0x20 + 14, &ideIRQISR, 0, INTERRUPT_GATE_32);
     // Secondary ATA Device after DMA transfer
     addIsrToIdt(0x20 + 15, &ideIRQISR, 0, INTERRUPT_GATE_32);
-
+    
     // Loads the location of the idt into the proper CPU register
 	idtLoad(&idt_info);
-
+    
 	outb(PIC1_DATA, 0x3C);
 	outb(PIC2_DATA, 0xFF);
-
-	kprintf("idt_entries loc: 0x%x\n", idt_entries);
-	sti();
+    
+	//kprintf("idt_entries loc: 0x%x\n", idt_entries);
+	//sti();
 }
 
 // Adds an Interrupt Service Routine (ISR) to the Interrupt Descriptor Table (IDT)
@@ -157,7 +165,7 @@ void idtInit() {
 //      - TRAP_GATE_16, TRAP_GATE_32
 void idtAddISR(uint8_t offset, void (*isr)(), uint8_t desc_level, uint8_t type){
     cli();
-
+    
     addIsrToIdt(offset, isr, desc_level, type);
     idtLoad(&idt_info);
     sti();
@@ -178,28 +186,28 @@ void remapPIC(int offset1, int offset2) {
 	ioWait();
 	outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
 	ioWait();
-
+    
 	/* The init sequence looks for three other "configuration commands"
 	   Basically just reads three more bytes */
-
+    
 	outb(PIC1_DATA, offset1);	// ICW2: Master PIC vector offset
 	ioWait();
-
+    
 	outb(PIC2_DATA, offset2);	// ICW2: Slave PIC vector offset
 	ioWait();
-
+    
 	outb(PIC1_DATA, 4); 		// ICW3: tell Master PIC that there
-								// is a slave PIC at IRQ2 (0000 0100)
+    // is a slave PIC at IRQ2 (0000 0100)
 	ioWait();
-
+    
 	outb(PIC2_DATA, 2);			// ICW3: Tell slave PIC its cascade identity
 	ioWait();
-
+    
 	outb(PIC1_DATA, ICW4_8086);	// ICW4: tells other info about the environment
 	ioWait();
 	outb(PIC2_DATA, ICW4_8086);
 	ioWait();
-
+    
 	outb(PIC1_DATA, 0xFC);
 	outb(PIC2_DATA, 0xFF);
 }

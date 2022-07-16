@@ -64,6 +64,5 @@ test-isodir/
 .*.py
 *.img
 
-
 *.4coder
 *.proj

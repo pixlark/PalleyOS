@@ -5,14 +5,18 @@
 #include <stddef.h>
 
 #define TERM_WIDTH 80
-#define TERM_HEIGHT 25
+#define TERM_HEIGHT 24
 #define VB_SIZE TERM_WIDTH * TERM_HEIGHT
 
-#define PVB_PAGES 10
+#define FVB_PAGES 10
 #define PV_PAGE_SIZE TERM_WIDTH * TERM_HEIGHT
-#define PVB_SIZE VB_SIZE * PVB_PAGES
-#define PVB_NUM_ROWS PVB_PAGES * TERM_HEIGHT
+#define PVB_SIZE VB_SIZE * FVB_PAGES
+#define PVB_NUM_ROWS FVB_PAGES * TERM_HEIGHT
 
+typedef enum {
+    SHIFT_DIRECTION_UP,
+    SHIFT_DIRECTION_DOWN
+} Shift_Direction;
 
 typedef enum {
 	VGA_COLOR_BLACK = 0,
@@ -31,27 +35,27 @@ typedef enum {
 	VGA_COLOR_LIGHT_MAGENTA = 13,
 	VGA_COLOR_LIGHT_BROWN = 14,
 	VGA_COLOR_WHITE = 15,
-} vga_color;
+} Vga_Color;
 
-void tioEnableCursor();
+typedef uint16_t Vga_Entry;
 
-void tioWriteChar(char c);
-void tioWriteCharColor(char c, vga_color vc);
+void tio_enable_cursor();
 
-void tioWrite(char* string);
-void tioWriteColor(char* string, vga_color vc);
+void tio_dec_cursor();
+void tio_backspace();
+void tio_init();
 
-void termWriteInt(int n, unsigned int base);
-void termWriteInt32(int32_t l, unsigned int base);
-void tioWrite_uint32(uint32_t ul, unsigned int base);
+void tio_write(char* string);
+void tio_write_color(char* string, Vga_Color vc);
 
-void tioShiftTermLineProtected(int n);
+void tio_cursor_inc();
+void tio_cursor_dec();
+bool tio_try_cursor_inc(int chars_typed, int padding_front);
+bool tio_try_cursor_dec(int padding_size);
 
-void tioIncCursor();
-void tioDecCursor();
-void tioBackspace();
+void tio_shift_right();
+void tio_shift_left();
 
-void tioShiftRight();
-void tioShiftLeft();
+void tio_shift_view(Shift_Direction dir, uint32_t amt);
 
 #endif

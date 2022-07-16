@@ -12,6 +12,8 @@
 
 .section .bss
 .align 16
+.global stack_top
+.global stack_bottom
 stack_bottom:
 .skip 1024*16 # 16 KiB 
 stack_top:
@@ -20,50 +22,50 @@ stack_top:
 .global _start
 .type _start, @function
 _start:
-	mov $stack_top, %esp
+mov $stack_top, %esp
 
-    push %eax
-    push %ebx
-    
-	call kernelMain
+push %eax
+push %ebx
 
-	jmp .
+call kernelMain
+
+jmp .
 
 .global enablePaging
 .type enablePaging, @function
 enablePaging:
-	push %ebp
-	mov %esp, %ebp
+push %ebp
+mov %esp, %ebp
 
-	# Input should be pointer to page_directory
-    mov 8(%esp), %eax
-	mov %eax, %cr3
+# Input should be pointer to page_directory
+mov 8(%esp), %eax
+mov %eax, %cr3
 
-	# Enable PSE (4 MiB pages)
-	mov %cr4, %eax
-	or $0x00000010, %eax 
-	mov %eax, %cr4
+# Enable PSE (4 MiB pages)
+mov %cr4, %eax
+or $0x00000010, %eax 
+mov %eax, %cr4
 
-	# Enable paging
-	mov %cr0, %eax
-	or $0x80000001, %eax
-	mov %eax, %cr0
+# Enable paging
+mov %cr0, %eax
+or $0x80000001, %eax
+mov %eax, %cr0
 
-	mov %cr3, %eax
+mov %cr3, %eax
 
-	mov %ebp, %esp
-	pop %ebp
+mov %ebp, %esp
+pop %ebp
 
-	ret
+ret
 
 .size _start, . - _start
 
 .global flush_tlb
 .type flush_tlb, @function
 flush_tlb:
-    movl %cr3, %eax
-    movl %eax, %cr3
-    ret
+movl %cr3, %eax
+movl %eax, %cr3
+ret
 
 # Function that takes in a pointer to the 
 # IDTInfo struct and loads the idt 
@@ -71,6 +73,6 @@ flush_tlb:
 .global getFaultAddress
 .type getFaultAddress, @function
 getFaultAddress:
-    mov %cr2, %eax
-    ret
+mov %cr2, %eax
+ret
 

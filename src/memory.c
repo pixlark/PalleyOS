@@ -25,11 +25,11 @@ typedef enum {
 } PagePermission;
 
 static PageDirEntry constructPageDirEntry(
-    uint32_t pfn,
-    PageSize page_size,
-    PageRW rw,
-    PagePermission permission
-) {
+                                          uint32_t pfn,
+                                          PageSize page_size,
+                                          PageRW rw,
+                                          PagePermission permission
+                                          ) {
     PageDirEntry entry = 0;
     // Sanity check (slow, but we're new and bugs are scary)
     if (pfn >= 0x40000) {
@@ -48,10 +48,10 @@ static PageDirEntry constructPageDirEntry(
 }
 
 static PageDirEntry constructEmptyPageDirEntry(
-    PageSize page_size,
-    PageRW rw,
-    PagePermission permission
-) {
+                                               PageSize page_size,
+                                               PageRW rw,
+                                               PagePermission permission
+                                               ) {
     PageDirEntry entry =
         constructPageDirEntry(0, page_size, rw, permission);
     // Clear present bit
@@ -64,7 +64,7 @@ static PageDirEntry constructEmptyPageDirEntry(
 // use, versus which ones are still free. This DOES NOT keep track of
 // any parts of physical memory that are completely unavailable
 // (i.e. not backed up by actual RAM). That is managed by the
-// PhysicalMemoryRegions (see below). Those areas of memory are just
+// Physical_Memory_Regions (see below). Those areas of memory are just
 // marked permanently free
 static union {
     uint8_t  bytes[128];
@@ -73,8 +73,8 @@ static union {
 } page_frame_map;
 
 // Virtual Page Number: VPN
-//  This is the part of the address that indexes the page directory.
-//  The page directory has 1024 entries, so the top 10 bits are the VPN.
+// This is the part of the address that indexes the page directory.
+// The page directory has 1024 entries, so the top 10 bits are the VPN.
 static uint32_t getVirtualFrameNumber(uint32_t virtual_address) {
     return virtual_address >> 22;
 }
@@ -89,13 +89,13 @@ static uint32_t get_physical_frame_number(uint32_t physical_address) {
 
 // The PhysicalMemoryRegions describe which parts of the 32-bit
 // physical address space are mapped to actual RAM
-typedef struct PhysicalMemoryRegion {
+typedef struct {
     uint32_t address;
     uint32_t size;
-} PhysicalMemoryRegion;
+} Physical_Memory_Region;
 
 #define MAX_PHYSICAL_MEMORY_REGIONS 16
-static PhysicalMemoryRegion physical_memory_regions[MAX_PHYSICAL_MEMORY_REGIONS];
+static Physical_Memory_Region physical_memory_regions[MAX_PHYSICAL_MEMORY_REGIONS];
 static uint32_t physical_memory_region_count;
 
 static bool is_frame_used(uint32_t pfn) {
@@ -118,16 +118,16 @@ void handle_page_fault() {
     uint32_t pfn;
     // Find an unallocated page frame
     for (uint8_t region_index = 0; region_index < physical_memory_region_count; region_index++) {
-        PhysicalMemoryRegion* region = physical_memory_regions + region_index;
+        Physical_Memory_Region* region = physical_memory_regions + region_index;
         
         // Frames must be aligned to the frame size, and there must be
         // enough space for the whole frame. Thus we calculate an
         // offset from the start of the region, and the maximum number
         // of blocks that it can fit.
-
+        
         uint32_t frame_start = region->address & ~(FRAME_SIZE - 1);
         frame_start += FRAME_SIZE;
-
+        
         if (frame_start > region->address + region->size) {
             // This region isn't big enough for even a single frame!
             // Low memory (kernel memory) should fall into this category
@@ -149,26 +149,26 @@ void handle_page_fault() {
     // Could not allocate page frame
     kprintf("Ran out of physical memory!");
     while (1);
-
- found_id:
+    
+    found_id:
     // Set frame as allocated
     setFrameUsed(pfn);
-
+    
     // Now, update the page directory to reference this frame
     uint32_t vpn = getVirtualFrameNumber(fault_address);
 	page_directory[vpn] = constructPageDirEntry(
-        pfn, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
-    );
-
+                                                pfn, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
+                                                );
+    
     // Invalidate the TLB, so that the processor will reflect these changes
     flush_tlb(); 
-
+    
     //kprintf("Mapped page %d to frame %d (word %d, position %d)\n", vpn, pfn, pfn / 32, pfn % 32);
 }
 
 typedef struct {
     uint32_t size; // Size of this region descriptor, minus the size
-                   // of 'size' itself; just used for iteration
+    // of 'size' itself; just used for iteration
     uint32_t base_addr_low;
     uint32_t base_addr_high; // these high bits are useless to us running on 32-bit
     uint32_t length_low;
@@ -184,7 +184,7 @@ void loadPhysicalMemoryRegionDescriptors(MultibootInfo* multiboot_info) {
         kprintf("GRUB did not provide memory information. Failure.\n");
         while (1);
     }
-
+    
     PhysicalMemoryRegionDescriptor* region = (PhysicalMemoryRegionDescriptor*) multiboot_info->mmap_addr;
     uint32_t traversed_size = 0;
     kprintf("==== MEMORY MAP ====\n");
@@ -192,17 +192,17 @@ void loadPhysicalMemoryRegionDescriptors(MultibootInfo* multiboot_info) {
     while (traversed_size < multiboot_info->mmap_length) {
         traversed_size += region->size + sizeof(region->size);
         kprintf("%s from: %x to %x\n",
-            region->region_type == 1 ? "RAM   " : "No RAM",
-            region->base_addr_low,
-            region->base_addr_low + region->length_low
-        );
+                region->region_type == 1 ? "RAM   " : "No RAM",
+                region->base_addr_low,
+                region->base_addr_low + region->length_low
+                );
         if (region->region_type == 1) {
-            physical_memory_regions[physical_memory_region_count] = (PhysicalMemoryRegion)
-                { region->base_addr_low, region->length_low };
+            physical_memory_regions[physical_memory_region_count] = (Physical_Memory_Region)
+            { region->base_addr_low, region->length_low };
             physical_memory_region_count += 1;
         }
         region = (PhysicalMemoryRegionDescriptor*)
-            (((uint8_t*) region) + region->size + sizeof(region->size));
+        (((uint8_t*) region) + region->size + sizeof(region->size));
     }
     kprintf("====================\n");
 }
@@ -216,7 +216,7 @@ extern void enablePaging(void*); // in boot.s for now
 const uint32_t PS_BIT = (1<<7);
 
 void setupPaging() {
-    // Zero the page directory entirely
+    //  Zero the page directory entirely
     //  We're setting proper bits on these unused entries, but we
     //  really don't need to. The OS will never look at an entry until
     //  it's marked present.
@@ -229,20 +229,20 @@ void setupPaging() {
             PAGE_USER_AND_SUPERVISOR
             );*/
     }
-
+    
     // Map low memory (first 4MB) (this is what we're operating under)
     page_directory[0] = constructPageDirEntry(
-        0, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
-    );
-
+                                              0, PAGE_SIZE_4_MIB, PAGE_READ_WRITE, PAGE_USER_AND_SUPERVISOR
+                                              );
+    
     // Zero out our physical page frame map (no pages allocated)
     for (int i = 0; i < 32; i++) {
         page_frame_map.words[i] = 0;
     }
-
+    
     // Except for low memory, again
     page_frame_map.words[0] |= (1 << 0);
-
+    
     // Finally we can actually enable paging
 	enablePaging(page_directory);
 }

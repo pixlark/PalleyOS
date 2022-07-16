@@ -21,7 +21,6 @@ typedef struct HeapNode {
 static HeapNode* root_node;
 
 void kheapInit() {
-    kprintf("sizeof(HeapNode): %d\n", sizeof(HeapNode));
     root_node = (HeapNode*) KHEAP_START;
     root_node->magic_number = KHEAP_MAGIC;
     root_node->size = (KHEAP_END - KHEAP_START) - sizeof(HeapNode);
@@ -65,11 +64,11 @@ static void consumeEmptySpace(HeapNode* node) {
         // Create a new node from this extra space
         uint8_t* byte_ptr = ((uint8_t*) NODE_TO_CONTENTS(node)) + node->size;
         HeapNode* new_node = createNode(
-            byte_ptr,
-            unaccounted_space - sizeof(HeapNode),
-            node->next_node,
-            false
-        );
+                                        byte_ptr,
+                                        unaccounted_space - sizeof(HeapNode),
+                                        node->next_node,
+                                        false
+                                        );
         // Rewrite current node
         node->next_node = new_node;
     } else {
@@ -78,34 +77,50 @@ static void consumeEmptySpace(HeapNode* node) {
     }
 }
 
-void* kheapAlloc(size_t size) {
+
+
+void* __kheapAlloc(size_t size, bool first_time) {
     // Locate free space
     HeapNode* iter = root_node;
     while (iter != NULL) {
         if (iter->magic_number != KHEAP_MAGIC) {
-            kprintf("Kernel heap was corrupted!\n");
-            while (true);
+            if(!first_time){
+                kprintf("Kernel heap was corrupted!\n");
+                while (true);
+            }else {
+                // Could have been a page fault
+                if (root_node->magic_number != KHEAP_MAGIC){
+                    kheapInit();
+                }
+                
+                return __kheapAlloc(size, false);
+            }
         }
+        
         if (!iter->allocated && iter->size >= size) {
             break;
         }
         // Otherwise
         iter = iter->next_node;
     }
-
+    
     if (iter == NULL) {
         // Didn't find any space!
         kprintf("Kernel heap ran out of space!\n");
         while (true);
     }
-
+    
     iter->size = size;
     iter->allocated = true;
-
+    
     consumeEmptySpace(iter);
     compactHeap();
-
+    
     return NODE_TO_CONTENTS(iter);
+}
+
+void* kheapAlloc(size_t size){
+    return __kheapAlloc(size, true);
 }
 
 void* kheapAlignedAlloc(size_t size, size_t alignment) {
@@ -136,31 +151,31 @@ void* kheapAlignedAlloc(size_t size, size_t alignment) {
         // Otherwise
         iter = iter->next_node;
     }
-
+    
     if (iter == NULL) {
         // Didn't find any space!
         kprintf("Kernel heap ran out of space!\n");
         while (true);
     }
-
+    
     // Allocate!
     HeapNode* preceding_node = iter;
-    // - Paul Tilley, 20:27 Wednesday 23 June 2021 -
+    // - Brooke Tilley, 20:27 Wednesday 23 June 2021 -
     //   `chosen` is guaranteed to start after the end of preceding_node's header
     //   So there's a chance that preceding_node is left with zero remaining space
     //   This is fine, it's not allocated anyway so it should get cleaned up by the heap compactor
     createNode(
-        chosen,
-        size,
-        preceding_node->next_node,
-        true
-    );
+               chosen,
+               size,
+               preceding_node->next_node,
+               true
+               );
     preceding_node->size = ((size_t) (((uint8_t*) chosen) - ((uint8_t*) preceding_node))) - sizeof(HeapNode);
     preceding_node->next_node = chosen;
-
+    
     consumeEmptySpace(chosen);
     compactHeap();
-
+    
     return NODE_TO_CONTENTS(chosen);
 }
 
@@ -188,15 +203,15 @@ void* kheapRealloc(void* ptr, size_t size) {
         if (size_delta >= sizeof(HeapNode) + 1) {
             // If there's enough room, fill the space with a new, unallocated node
             HeapNode* new_node = createNode(
-                NODE_TO_CONTENTS(current_node) + size,
-                size_delta - sizeof(HeapNode),
-                current_node->next_node,
-                false
-            );
-
+                                            NODE_TO_CONTENTS(current_node) + size,
+                                            size_delta - sizeof(HeapNode),
+                                            current_node->next_node,
+                                            false
+                                            );
+            
             current_node->next_node = new_node;
             current_node->size = size;
-
+            
             compactHeap();
         }
         // Otherwise, don't even bother resizing. We can't do anything with the space it would free.
@@ -214,15 +229,15 @@ void* kheapRealloc(void* ptr, size_t size) {
         if (size_delta >= sizeof(HeapNode) + 1) {
             // Create a new node out of the extra space
             HeapNode* new_node = createNode(
-                NODE_TO_CONTENTS(current_node) + size,
-                size_delta - sizeof(HeapNode),
-                iter,
-                false
-            );
+                                            NODE_TO_CONTENTS(current_node) + size,
+                                            size_delta - sizeof(HeapNode),
+                                            iter,
+                                            false
+                                            );
             
             current_node->next_node = new_node;
             current_node->size = size;
-
+            
             compactHeap();
             
             return NODE_TO_CONTENTS(current_node);

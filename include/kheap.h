@@ -1,7 +1,7 @@
 #pragma once
 
-#define KHEAP_START 0xf000000
-#define KHEAP_END   0xfffffff
+#define KHEAP_START 0x0f00000
+#define KHEAP_END   0x0ffe000
 
 void  kheapInit();
 void* kheapAlloc(size_t size);

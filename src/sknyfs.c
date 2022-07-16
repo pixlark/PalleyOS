@@ -38,9 +38,9 @@ typedef struct {
 #define FILES_PER_CHUNK (CHUNK_SIZE / sizeof(FileMetadata))
 
 #define TOTAL_ALLOCATABLE_CHUNKS \
-    (CHUNKS_IN_ALLOCATION_MAP * CHUNK_SIZE * 8)
+(CHUNKS_IN_ALLOCATION_MAP * CHUNK_SIZE * 8)
 #define MAXIMUM_FILE_COUNT \
-    (CHUNKS_IN_FILE_MAP * CHUNK_SIZE / sizeof(FileMetadata))
+(CHUNKS_IN_FILE_MAP * CHUNK_SIZE / sizeof(FileMetadata))
 
 #define INFORMATION_DUMP true
 
@@ -84,7 +84,7 @@ static SknyStatus searchAllocationMap(SknyHandle* handle, ChunkLocation* ret) {
     return SKNY_FILESYSTEM_FULL;
 }
 
-// TODO(Paul): If this function reads in only the sector containing
+// TODO(Brooke): If this function reads in only the sector containing
 // the bit, and not the entire chunk containing the bit, it will
 // become way, way, way more efficient. So do that.
 static SknyStatus markChunkAsUsed(SknyHandle* handle, ChunkLocation chunk_number) {
@@ -139,7 +139,7 @@ static SknyStatus searchFileMap(SknyHandle* handle, FileIndex* ret) {
     return SKNY_FILESYSTEM_FULL;
 }
 
-// TODO(Paul): If this function reads in only the sector containing
+// TODO(Brooke): If this function reads in only the sector containing
 // the metadata, and not the entire chunk containing the metadata, it
 // will become a bit more efficient. So do that.
 static writeFileMetadata(SknyHandle* handle, FileIndex file_index, FileMetadata* file_metadata) { 
@@ -169,20 +169,20 @@ SknyStatus sknyCreateFile(SknyHandle* handle, const char* name) {
     if (status != SKNY_STATUS_OK) {
         return status;
     }
-    #if INFORMATION_DUMP
+#if INFORMATION_DUMP
     kprintf("ALLOCATING FILE TO CHUNK %u\n", available_chunk);
-    #endif
-
+#endif
+    
     FileIndex file_index;
     status = searchFileMap(handle, &file_index);
     if (status != SKNY_STATUS_OK) {
         return status;
     }
-
-    #if INFORMATION_DUMP
+    
+#if INFORMATION_DUMP
     kprintf("REPRESENTING FILE WITH BIN %u\n", file_index);
-    #endif
-
+#endif
+    
     //
     // Now, actually create the file
     //
@@ -226,7 +226,7 @@ SknyStatus sknyWriteFile(SknyHandle* handle, const char* name) {
     if (status != SKNY_STATUS_OK) {
         return status;
     }
-
+    
     //
     // Write to the file
     //
@@ -235,16 +235,16 @@ SknyStatus sknyWriteFile(SknyHandle* handle, const char* name) {
 // Very slow!!
 static ATAError clearChunk(SknyHandle* handle, ChunkLocation chunk, uint8_t byte) {
     uint8_t buffer[IDE_SECTOR_SIZE];
-    // TODO(Paul): get memset from alex!!
+    // TODO(Brooke): get memset from alex!!
     for (uint32_t i = 0; i < IDE_SECTOR_SIZE; i++) {
         buffer[i] = byte;
     }
     for (uint32_t i = 0; i < SECTORS_PER_CHUNK; i++) {
         ATAError err = ideWriteSectors(
-            handle->drive, 1,
-            (chunk * CHUNK_SIZE) + (i * IDE_SECTOR_SIZE),
-            buffer
-        );
+                                       handle->drive, 1,
+                                       (chunk * CHUNK_SIZE) + (i * IDE_SECTOR_SIZE),
+                                       buffer
+                                       );
         if (err != NoError) {
             return err;
         }
@@ -255,7 +255,7 @@ static ATAError clearChunk(SknyHandle* handle, ChunkLocation chunk, uint8_t byte
 SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
     handle->drive = drive;
     
-    #if INFORMATION_DUMP
+#if INFORMATION_DUMP
     kprintf("=== INITIALIZING Skny FILESYSTEM... ===\n");
     kprintf("Chunk size: %u bytes\n", CHUNK_SIZE);
     kprintf("Allocation map: %u chunks\n", CHUNKS_IN_ALLOCATION_MAP);
@@ -263,10 +263,10 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
     kprintf("File metadata size: %u bytes\n", sizeof(FileMetadata));
     kprintf("Total allocatable chunks: %u chunks\n", TOTAL_ALLOCATABLE_CHUNKS);
     kprintf("Maximum file count: %u files\n", MAXIMUM_FILE_COUNT);
-
+    
     kprintf("(!!!) FORMATTING TO Skny...\n");
     kprintf("(!!!)   Formatting allocation map...\n");
-    #endif
+#endif
     
     // Initialize allocation map
     for (ChunkLocation i = 0; i < CHUNKS_IN_ALLOCATION_MAP; i++) {
@@ -277,10 +277,10 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
         }
     }
     
-    #if INFORMATION_DUMP
+#if INFORMATION_DUMP
     kprintf("(!!!)   Formatting file map...\n");
-    #endif
-
+#endif
+    
     // Initialize file map
     for (ChunkLocation i = 0; i < CHUNKS_IN_FILE_MAP; i++) {
         ATAError write_err = clearChunk(handle, CHUNKS_IN_ALLOCATION_MAP + i, 0);
@@ -289,11 +289,11 @@ SknyStatus sknyCreateFilesystem(SknyHandle* handle, uint8_t drive) {
             return SKNY_WRITE_FAILURE;
         }
     }
-
-    #if INFORMATION_DUMP
+    
+#if INFORMATION_DUMP
     kprintf("(!!!) DONE FORMATTING\n");
     kprintf("=======================================\n");
-    #endif
+#endif
     
     return SKNY_STATUS_OK;
 }
