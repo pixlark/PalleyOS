@@ -331,9 +331,7 @@ static MappedKey kbNextMappedKey() {
 	MappedKey ret = {0};
     
 	if(queue_ridx == queue_widx){
-		sti();
 		while(queue_ridx == queue_widx);
-		cli();
 	}
     
 	uint8_t curr_code = scancode_queue[queue_ridx++];
@@ -374,9 +372,7 @@ void kbGetLine(char* buffer) {
     int size = 1;
     while(!key.down_stroke || key.mapped_code != KEY_ENTER) {
         if(queue_ridx != queue_widx) {
-            cli();
             key = kbNextMappedKey();
-            sti();	
         } else continue;
         
         if(key.down_stroke == false) continue;
@@ -384,12 +380,16 @@ void kbGetLine(char* buffer) {
         if(!key.printable){ // Handle cursor movements
             
             if(key.mapped_code == KEY_ARROW_LEFT) {
-                index --;
-                if(index < 0) index = 0;
-                tio_cursor_dec();
+                if(tio_try_cursor_dec(2)){
+                    index --;
+                    if(index < 0) index = 0;
+                }
             }else if(key.mapped_code == KEY_ARROW_RIGHT) {
-                index ++;
-                tio_cursor_inc();
+                // TODO(alex): Change this to be dynamic with command prompt
+                // size chars already typed and "> " gives padding of 2
+                if(tio_try_cursor_inc(size, 2)){
+                    index ++;
+                }
                 if(index > size-1) index = size-1;
             }else if(key.mapped_code == KEY_ARROW_UP) {
 				tio_shift_view(SHIFT_DIRECTION_UP, 1);
@@ -397,7 +397,7 @@ void kbGetLine(char* buffer) {
 				tio_shift_view(SHIFT_DIRECTION_DOWN, 1);
 			}else if(key.mapped_code == KEY_BACKSPACE) {
 				if(index <= 0) continue;
-                tio_shift_left();
+                tio_shift_left(size);
                 if(index != size-1){
                     for(int i = index-1; i < size-1; i++)
                         buffer[i] = buffer[i+1];
@@ -432,7 +432,6 @@ void kbGetLine(char* buffer) {
         }
     }
     
-    tio_cursor_inc(size - index);
 }
 
 char kbGetChar() {

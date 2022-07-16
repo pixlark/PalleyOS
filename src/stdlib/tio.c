@@ -34,6 +34,7 @@ typedef struct {
 typedef struct {
     int x;
     int y;
+    bool on_screen;
 } Cursor;
 Cursor cursor;
 
@@ -80,6 +81,7 @@ void tio_init() {
     
     cursor.x = 0;
     cursor.y = 0;
+    cursor.on_screen = true;
     
 }
 
@@ -113,7 +115,11 @@ internal void __view_shift(VB_View* view, Video_Buffer* buff, Shift_Direction di
         if(dir == SHIFT_DIRECTION_UP) {
             view->row ++;
             cursor.y --;
-            if(cursor.y < 0) cursor.y = 0;
+            if(cursor.y < 0) {
+                cursor.y = 0;
+                cursor.on_screen = true;
+                return;
+            }
             int num_rows = buff->num_pages * TERM_HEIGHT;
             if(view->row + view->height >= num_rows){
                 // NOTE(alex): moves all data to previous page and makes last page blank.
@@ -123,10 +129,21 @@ internal void __view_shift(VB_View* view, Video_Buffer* buff, Shift_Direction di
             }
         }else {
             view->row --;
-            cursor.y ++;
-            if(view->row < 0) view->row = 0;
+            
+            if(view->row < 0) {
+                view->row = 0;
+            }else {
+                cursor.y ++;
+            }
         }
     }
+    
+    if(cursor.y > 0 && cursor.y < TERM_HEIGHT) {
+        cursor.on_screen = true;
+    }else {
+        cursor.on_screen = false;
+    }
+    
     render_screen();
     render_cursor();
 }
@@ -162,6 +179,15 @@ void tio_cursor_inc() {
     __cursor_inc(&cursor);
 }
 
+bool tio_try_cursor_inc(int chars_typed, int padding_front) {
+    if(cursor.x < padding_front + chars_typed - 1){
+        tio_cursor_inc();
+        return true;
+    }
+    return false;
+    
+}
+
 internal void __cursor_dec(Cursor* cursor) {
     cursor->x--;
     if(cursor->x < 0){
@@ -171,6 +197,14 @@ internal void __cursor_dec(Cursor* cursor) {
     if(cursor->y < 0) cursor->y = 0;
     
     render_cursor(cursor);
+}
+
+bool tio_try_cursor_dec(int padding_size) {
+    if(cursor.x <= padding_size){
+        return false;
+    }
+    tio_cursor_dec();
+    return true;
 }
 
 void tio_cursor_dec() {
@@ -202,18 +236,18 @@ void tio_backspace() {
 // TODO(alex): Update this to work on an input line by line basis
 // Shfits all characters visible to the right from the cursor and replaces
 // it with a blank
-void tio_shift_right(Cursor* cursor) {
+void tio_shift_right() {
     
     // TODO(alex): Update this to wrap words to next line
     size_t term_view_end_index = view_get_buffer_end_index(&term_view);
-    size_t cursor_buffer_index = cursor_get_index_in_buffer(cursor);
+    size_t cursor_buffer_index = cursor_get_index_in_buffer(&cursor);
     for(size_t j = term_view_end_index;
         j > cursor_buffer_index;
         j--) {
-        vb_set_value(&fvb, j, vb_get_value(&fvb, j));
+        vb_set_value(&fvb, j, vb_get_value(&fvb, j-1));
     }
     
-    size_t cursor_index = cursor_get_index(cursor);
+    size_t cursor_index = cursor_get_index(&cursor);
     vb_set_value(&fvb, cursor_buffer_index, platform_vb[cursor_index]);
     
     render_screen();
@@ -222,12 +256,12 @@ void tio_shift_right(Cursor* cursor) {
 // TODO(alex): Update this to work on an input line by line basis
 // Shfits all characters visible to the left from the cursor and replaces
 // it with a blank
-void tio_shift_left(Cursor* cursor) {
+void tio_shift_left() {
     size_t term_view_end_index = view_get_buffer_end_index(&term_view);
-    size_t cursor_buffer_index = cursor_get_index_in_buffer(cursor);
+    size_t cursor_buffer_index = cursor_get_index_in_buffer(&cursor);
     
     size_t fvb_index = cursor_buffer_index;
-    if(cursor->x == 0) fvb_index += 1;
+    if(cursor.x == 0) fvb_index += 1;
     
     // TODO(alex): Update this to shift until index line range end
     for(size_t j = fvb_index; j < term_view_end_index; j++)
@@ -258,6 +292,10 @@ void tio_write_char_color(char c, Vga_Color vc){
     size_t index = cursor_get_index(&cursor);
     Vga_Entry vga_entry = create_vga_entry(c, vc);
     platform_vb[index] = vga_entry; 
+    
+    if(!cursor.on_screen) {
+        view_shift(SHIFT_DIRECTION_UP, cursor.y - TERM_HEIGHT+1);
+    }
     
     // TODO(alex): Update this to set it correctly with guards
     size_t cursor_buffer_index = cursor_get_index_in_buffer(&cursor);

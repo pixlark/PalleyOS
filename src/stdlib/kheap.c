@@ -21,7 +21,6 @@ typedef struct HeapNode {
 static HeapNode* root_node;
 
 void kheapInit() {
-    kprintf("sizeof(HeapNode): %d\n", sizeof(HeapNode));
     root_node = (HeapNode*) KHEAP_START;
     root_node->magic_number = KHEAP_MAGIC;
     root_node->size = (KHEAP_END - KHEAP_START) - sizeof(HeapNode);
@@ -78,14 +77,26 @@ static void consumeEmptySpace(HeapNode* node) {
     }
 }
 
-void* kheapAlloc(size_t size) {
+
+
+void* __kheapAlloc(size_t size, bool first_time) {
     // Locate free space
     HeapNode* iter = root_node;
     while (iter != NULL) {
         if (iter->magic_number != KHEAP_MAGIC) {
-            kprintf("Kernel heap was corrupted!\n");
-            while (true);
+            if(!first_time){
+                kprintf("Kernel heap was corrupted!\n");
+                while (true);
+            }else {
+                // Could have been a page fault
+                if (root_node->magic_number != KHEAP_MAGIC){
+                    kheapInit();
+                }
+                
+                return __kheapAlloc(size, false);
+            }
         }
+        
         if (!iter->allocated && iter->size >= size) {
             break;
         }
@@ -106,7 +117,10 @@ void* kheapAlloc(size_t size) {
     compactHeap();
     
     return NODE_TO_CONTENTS(iter);
-    return NODE_TO_CONTENTS(iter);
+}
+
+void* kheapAlloc(size_t size){
+    return __kheapAlloc(size, true);
 }
 
 void* kheapAlignedAlloc(size_t size, size_t alignment) {

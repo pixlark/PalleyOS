@@ -17,6 +17,7 @@
 #include <kheap.h>
 #include <timer.h>
 #include <syscall.h>
+#include <tio.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -37,7 +38,8 @@ void testRealloc(int change) {
 }
 
 extern void jump_to_ring3(uint32_t function_ptr);
-static void userModeFunc() {
+extern void jump_to_user_mode();
+void userModeFunc() {
     __asm__ volatile (" \n"
                       " pushl $0xAA \n "
                       " pushl $0xBB \n "
@@ -48,18 +50,20 @@ static void userModeFunc() {
                       " pop %eax \n " );
 }
 
+void user_mode_func_test() {
+    // Should call GDT Halt
+    //__asm__ volatile("cli");
+    return;
+}
+
 void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
     // Get RAM info from GRUB
     if (magic != 0x2BADB002) {
         return;
     }
-    kheapInit();
-    tio_init();
     
-    for(int i = 0; i < 30; i++) {
-        kprintf("%x\n", i); 
-    }
+    tio_init();
     
 	/* Set up IDT */
 	kprintf("Setting up the IDT\n");
@@ -68,7 +72,6 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	/* Set up GDT */	
 	kprintf("Setting up GDT\n");
 	gdtInit();
-    
     
 	/* Init Timer and PIT */
     kprintf("Initializing PIT Timer\n");
@@ -81,8 +84,9 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     setupPaging();
     
     syscallsInit();
-    /*
-    kheapInit();*/
+    
+    kheapInit();
+    
     
     {
         // Test heap
@@ -103,11 +107,13 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
 	pciCheckAllBuses();
     
+    kprintf("user_mode_func_test: 0x%x\n", user_mode_func_test);
     kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
+    //kprintf("jump_to_user_mode: 0x%x\n", jump_to_user_mode);
     kprintf("userModeFunc: 0x%x\n", userModeFunc);
     kprintf("&userModeFunc: 0x%x\n", &userModeFunc);
     
-    jump_to_ring3(userModeFunc);
+    //jump_to_ring3(user_mode_func_test);
     
 	kShellStart();
 }

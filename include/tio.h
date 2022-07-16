@@ -50,6 +50,8 @@ void tio_write_color(char* string, Vga_Color vc);
 
 void tio_cursor_inc();
 void tio_cursor_dec();
+bool tio_try_cursor_inc(int chars_typed, int padding_front);
+bool tio_try_cursor_dec(int padding_size);
 
 void tio_shift_right();
 void tio_shift_left();
