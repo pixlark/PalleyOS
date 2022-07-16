@@ -21,5 +21,6 @@ void idtInit();
 //      - TASK_GATE
 //      - INTERRUPT_GATE_16, INTERRUPT_GATE_32
 //      - TRAP_GATE_16, TRAP_GATE_32
-void idtAddISR(uint8_t id, void (*isr)(), uint8_t desc_level, uint8_t type);
+void idt_add_isr(uint8_t id, void (*isr)(), uint8_t desc_level, uint8_t type);
+void addIsrToIdt(uint8_t id, void (*isr)(), int desc_level, int type);
 

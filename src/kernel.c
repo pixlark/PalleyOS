@@ -83,7 +83,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     // Now, setup paging so we can use our physical memory
     setupPaging();
     
-    syscallsInit();
+    syscalls_init();
     
     kheapInit();
     
@@ -114,6 +114,8 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     kprintf("&userModeFunc: 0x%x\n", &userModeFunc);
     
     //jump_to_ring3(user_mode_func_test);
+    syscall(0x16, "passing format: %d\n", 69);
+    
     
 	kShellStart();
 }

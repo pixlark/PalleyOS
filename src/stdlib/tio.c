@@ -113,13 +113,14 @@ internal void __view_shift(VB_View* view, Video_Buffer* buff, Shift_Direction di
         i++) {
         
         if(dir == SHIFT_DIRECTION_UP) {
-            view->row ++;
             cursor.y --;
             if(cursor.y < 0) {
                 cursor.y = 0;
                 cursor.on_screen = true;
                 return;
             }
+            
+            view->row ++;
             int num_rows = buff->num_pages * TERM_HEIGHT;
             if(view->row + view->height >= num_rows){
                 // NOTE(alex): moves all data to previous page and makes last page blank.

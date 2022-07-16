@@ -139,24 +139,24 @@ void virtHandler() {
 
 void addExceptionsHandlersToIdt() {
     
-	addIsrToIdt(0, &divByZeroIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(1, &debugIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(3, &breakpointIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(4, &overflowIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(5, &boundRangeIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(6, &invalidOpcodeIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(7, &deviceNAIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(8, &doubleFaultIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(10, &invalidTSSIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(11, &segNotPresIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(12, &stackSegIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(13, &generalProtFaultIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(14, &pageFaultIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(16, &fpeIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(17, &alignCheckIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(18, &machineCheckIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(19, &simdFpeIsr, 0, TRAP_GATE_32);
-	addIsrToIdt(20, &virtIsr, 0, TRAP_GATE_32);
+    addIsrToIdt(0, divByZeroIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(1, debugIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(3, breakpointIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(4, overflowIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(5, boundRangeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(6, invalidOpcodeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(7, deviceNAIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(8, doubleFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(10, invalidTSSIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(11, segNotPresIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(12, stackSegIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(13, generalProtFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(14, pageFaultIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(16, fpeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(17, alignCheckIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(18, machineCheckIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(19, simdFpeIsr, 0, TRAP_GATE_32);
+	addIsrToIdt(20, virtIsr, 0, TRAP_GATE_32);
     
 }
 

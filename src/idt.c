@@ -59,10 +59,7 @@ static void idtLoad(IDTInfo* idt_loc) {
 
 void remapPIC(int offset1, int offset2);
 
-bool addIsrToIdt(int num, void (*func_ptr)(), int desc_level, int gate_type){
-	if(num < 0) {
-		return false;	
-	}
+void addIsrToIdt(uint8_t num, void (*func_ptr)(), int desc_level, int gate_type){
     
 	idt_entries[num].offset_low = ((uint32_t)func_ptr & 0xffff);
 	idt_entries[num].offset_high = ((uint32_t)func_ptr & 0xffff0000) >> 16;
@@ -82,7 +79,6 @@ bool addIsrToIdt(int num, void (*func_ptr)(), int desc_level, int gate_type){
 	else
 		idt_entries[num].type_attr |= (1 << 4); 
     
-	return true;
 }
 
 // Sets a bit in the PIC, effectively telling the CPU not to listen
@@ -123,7 +119,7 @@ extern void keyboardIsr(void);
 // Ide Controller DMA IRQ
 extern void ideIRQISR(void);
 
-extern void syscallIsr(void);
+extern void syscall_isr(void);
 
 /* ======== SETUP ======== */
 void idtInit() {
@@ -138,7 +134,7 @@ void idtInit() {
     addExceptionsHandlersToIdt();
     
 	addIsrToIdt(0x20, &PITIRQ, 0, INTERRUPT_GATE_32);
-    addIsrToIdt(0x21, &keyboardIsr, 0, INTERRUPT_GATE_32);	
+    addIsrToIdt(0x21, keyboardIsr, 0, INTERRUPT_GATE_32);	
     
     // Primary ATA Device after DMA transfer
     addIsrToIdt(0x20 + 14, &ideIRQISR, 0, INTERRUPT_GATE_32);
@@ -163,7 +159,7 @@ void idtInit() {
 //      - TASK_GATE
 //      - INTERRUPT_GATE_16, INTERRUPT_GATE_32
 //      - TRAP_GATE_16, TRAP_GATE_32
-void idtAddISR(uint8_t offset, void (*isr)(), uint8_t desc_level, uint8_t type){
+void idt_add_isr(uint8_t offset, void (*isr)(), uint8_t desc_level, uint8_t type){
     cli();
     
     addIsrToIdt(offset, isr, desc_level, type);

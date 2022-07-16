@@ -3,39 +3,40 @@
 #include <idt.h>
 #include <kstdio.h>
 
-struct Registers {
+typedef void (*Syscall_Func_Ptr)(va_list args);
+
+typedef struct Registers {
     uint32_t eax;
     uint32_t ebx;
     uint32_t ecx;
     uint32_t edx;
     uint32_t esi;
     uint32_t edi;
-};
-typedef struct Registers Registers;
+} Registers;
 
-extern void syscallIsr();
-static void syscallHandler();
+extern void syscall_isr();
+
+void syscall_printf(va_list args);
 
 uint32_t num_syscalls = 1;
-static void* syscalls[1] = 
-{
-    &kprintf,
-};
+static Syscall_Func_Ptr syscalls[0x20];
 
-void syscallsInit() {
+void syscalls_init() {
     kprintf("INIT SYSCALLS\n");
-    idtAddISR(0x80, &syscallIsr, 3, INTERRUPT_GATE_32);
+    idt_add_isr(0x80, syscall_isr, 3, INTERRUPT_GATE_32);
+    syscalls[0x16] = syscall_printf;
 }
 
-// push param_n
-// push param...
-// push param_1
-// push syscall_index
-// int $0x80
+void syscall_try_call(int index, va_list args){
+    if(syscalls[index] != 0) {
+        // TODO(alex): somehow implement error checking to make sure
+        // the syscall includes correct number of arguments
+        syscalls[index](args);
+    }
+}
 
-// Called from syscallIsr
-//void syscallHandler(uint32_t syscall_index) {
-//
-//    if(syscall_index >= num_syscalls)
-//        return;
-//}
+SYSCALL(syscall_printf){
+    const char* format = va_arg(args, const char*);
+    kvprintf(format, args);
+}
+

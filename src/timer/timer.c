@@ -30,12 +30,12 @@ void PITIRQ() {
         if(pit_counters[i].active)
             pit_counters[i].count ++;
     }
-
+    
     if(sleep_counter > 0) {
         sleep_counter -= 1;
         //kprintf("sleep_counter: %d\n", sleep_counter);
     }
-
+    
     outb(0x20, 0x20);
     outb(0xa0, 0x20);
 }
@@ -43,24 +43,24 @@ void PITIRQ() {
 static uint16_t readPITCount(void) {
 	cli();
 	uint16_t count = 0;
-
+    
 	outb(PIT_COMMAND_REG, 0);
-
+    
 	ioWait();
-
+    
 	count = inb(PIT_CHANNEL_0_DATA);
 	count |= inb(PIT_CHANNEL_0_DATA)<<8;
-
+    
 	sti();
 	return count;
 }
 
 static void setPITCount(uint16_t count) {
 	cli();
-
+    
 	outb(PIT_CHANNEL_0_DATA, count&0xff);
 	outb(PIT_CHANNEL_0_DATA, (count&0xff00)>>8);
-
+    
 	sti();
 }
 
@@ -74,13 +74,13 @@ void pitSleep(uint32_t num_millis) {
         sti();
         // We need to allow time for the Interrupt to be registered
         __asm__ volatile ("nop \n"
-                           "nop\n"
-                           "nop\n"
-                           "nop\n"
-                           "nop\n"
-                           "nop\n"
-                           "nop\n"
-                           "nop\n");
+                          "nop\n"
+                          "nop\n"
+                          "nop\n"
+                          "nop\n"
+                          "nop\n"
+                          "nop\n"
+                          "nop\n");
     }
 }
 
@@ -89,7 +89,7 @@ void pitSleep(uint32_t num_millis) {
 // Returns the timer id for later access on success ( >= 0 )
 PITResult pitAddCounter() {
     if(pit_initialized == false) initPITTimer();
-
+    
     PITResult result;
     int i;
     for(i= 0; i < PIT_NUM_COUNTERS; i++) {
@@ -110,7 +110,7 @@ PITResult pitAddCounter() {
 PITResult pitDeactivateCounter(uint8_t counter_id) {
     if(pit_initialized == false) initPITTimer();
     PITResult result;
-
+    
     if(counter_id > PIT_NUM_COUNTERS) {
         result.isError = true;
         result.error = PITOutOfRange;
@@ -118,7 +118,7 @@ PITResult pitDeactivateCounter(uint8_t counter_id) {
     }
     pit_counters[counter_id].active = false;
     pit_counters[counter_id].count = 0; 
-
+    
     result.isError = false;
     return result; 
 }
@@ -128,13 +128,13 @@ PITResult pitDeactivateCounter(uint8_t counter_id) {
 PITResult pitGetCounterCount(uint8_t counter_id) {
     if(pit_initialized == false) initPITTimer();
     PITResult result;
-
+    
     if(counter_id > PIT_NUM_COUNTERS) {
         result.isError = true;
         result.error = PITOutOfRange;
         return result;
     }
-
+    
     result.isError = false;
     result.count = pit_counters[counter_id].count;
     return result;
@@ -149,7 +149,7 @@ PITResult pitResetCounter(uint8_t counter_id) {
         result.error = PITOutOfRange;
         return result;
     }
-
+    
     pit_counters[counter_id].count = 0;
     result.isError = false;
     return result;
@@ -171,7 +171,7 @@ void initPITTimer() {
     if(pit_initialized) return;
     
     kmemset(pit_counters, 0, sizeof(PITCounter)*PIT_NUM_COUNTERS);
-
+    
     // Set the PIT to a static 1000 Hz
 	outb(PIT_COMMAND_REG, 0x34);
 	outb(PIT_CHANNEL_0_DATA, 0xa9);
@@ -179,9 +179,9 @@ void initPITTimer() {
 	
 	outb(PIT_COMMAND_REG, 0xe2);
     frequency = 1000;
-
-    idtAddISR(0x20, &PITIRQHandler, 0, INTERRUPT_GATE_32);
-
+    
+    idt_add_isr(0x20, &PITIRQHandler, 0, INTERRUPT_GATE_32);
+    
     pit_initialized = true;
 	sti();
 }
