@@ -24,7 +24,7 @@ static Syscall_Func_Ptr syscalls[0x20];
 void syscalls_init() {
     kprintf("INIT SYSCALLS\n");
     idt_add_isr(0x80, syscall_isr, 3, INTERRUPT_GATE_32);
-    syscalls[0x16] = syscall_printf;
+    syscalls[KPRINTF_SYSCALL] = syscall_printf;
 }
 
 void syscall_try_call(int index, va_list args){

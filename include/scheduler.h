@@ -28,11 +28,11 @@ struct TSSEntry {
 	uint32_t ds;
 	uint32_t fs;
 	uint32_t gs;
-	uint32_t ldt;
+	uint32_t ldtr;
 	uint16_t trap;
 	uint16_t iomap_base;
 } __attribute__((packed));
- 
+
 typedef struct TSSEntry TSSEntry;
 
 struct SavedProcessState {

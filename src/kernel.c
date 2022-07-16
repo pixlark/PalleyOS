@@ -37,22 +37,16 @@ void testRealloc(int change) {
     kheapFree(ptr);
 }
 
-extern void jump_to_ring3(uint32_t function_ptr);
+extern void jump_to_ring3(void* function_ptr);
 extern void jump_to_user_mode();
-void userModeFunc() {
-    __asm__ volatile (" \n"
-                      " pushl $0xAA \n "
-                      " pushl $0xBB \n "
-                      " pushl $0xCC \n "
-                      " int $0x80 \n "
-                      " pop %eax \n "
-                      " pop %eax \n "
-                      " pop %eax \n " );
-}
 
 void user_mode_func_test() {
     // Should call GDT Halt
     //__asm__ volatile("cli");
+    
+    cli();
+    syscall(KPRINTF_SYSCALL, "In User Mode?\n");
+    while(1);
     return;
 }
 
@@ -75,6 +69,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
 	/* Init Timer and PIT */
     kprintf("Initializing PIT Timer\n");
+    // TODO(alex): Check functionality
 	initPITTimer();
     
     // Inform the memory unit of our physical memory situation
@@ -87,21 +82,6 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
     kheapInit();
     
-    
-    {
-        // Test heap
-        kprintf("=== SAME SIZE ALLOCATION ===\n");
-        testRealloc(0);
-        kprintf("=== INCREASING ALLOCATION ===\n");
-        testRealloc(100);
-        kprintf("=== DECREASING ALLOCATION ===\n");
-        testRealloc(-50);
-        
-        kprintf("=== ALIGNED ALLOCATION ===\n");
-        kheapAlignedAlloc(100, 512);
-        kheapDump();
-    }
-    
 	loadCpuid();
 	cpuidPrintVendor();
     
@@ -109,13 +89,9 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
     kprintf("user_mode_func_test: 0x%x\n", user_mode_func_test);
     kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
-    //kprintf("jump_to_user_mode: 0x%x\n", jump_to_user_mode);
-    kprintf("userModeFunc: 0x%x\n", userModeFunc);
-    kprintf("&userModeFunc: 0x%x\n", &userModeFunc);
     
-    //jump_to_ring3(user_mode_func_test);
-    syscall(0x16, "passing format: %d\n", 69);
-    
+    syscall(KPRINTF_SYSCALL, "Syscall from ring0, kernel\n");
+    jump_to_ring3(user_mode_func_test);
     
 	kShellStart();
 }

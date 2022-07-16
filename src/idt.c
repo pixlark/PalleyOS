@@ -121,12 +121,14 @@ extern void ideIRQISR(void);
 
 extern void syscall_isr(void);
 
+extern void get_idt_register_value(IDTInfo* out);
+
 /* ======== SETUP ======== */
 void idtInit() {
 	//cli();
 	remapPIC(0x20, 0x28);
     
-    kmemset(idt_entries, 0x0, sizeof(IDTEntry) * 256);
+    kmemset(idt_entries, 0x0, sizeof(idt_entries));
     
 	idt_info.size = (uint16_t)(sizeof(struct IDTEntry)*256) - 1;
 	idt_info.idt_addr = (uintptr_t) &idt_entries;
@@ -147,6 +149,18 @@ void idtInit() {
 	outb(PIC1_DATA, 0x3C);
 	outb(PIC2_DATA, 0xFF);
     
+    IDTInfo idt_stored_info = {};
+    idt_stored_info.size = 0;
+    idt_stored_info.idt_addr = 0;
+    //get_idt_register_value(&idt_stored_info);
+    
+    
+    if(idt_stored_info.size == 0 || idt_stored_info.idt_addr != idt_info.idt_addr){
+        kprintf("Error: IDT Location does not match\n");
+        kprintf("IDT Base: 0x%x\n", idt_info.idt_addr);
+        kprintf("Stored IDT Register: 0x%x\n", idt_stored_info.idt_addr);
+    }
+    
 	//kprintf("idt_entries loc: 0x%x\n", idt_entries);
 	//sti();
 }
@@ -161,7 +175,6 @@ void idtInit() {
 //      - TRAP_GATE_16, TRAP_GATE_32
 void idt_add_isr(uint8_t offset, void (*isr)(), uint8_t desc_level, uint8_t type){
     cli();
-    
     addIsrToIdt(offset, isr, desc_level, type);
     idtLoad(&idt_info);
     sti();

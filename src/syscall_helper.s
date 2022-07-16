@@ -1,6 +1,8 @@
 .extern syscall_try_call
 .global syscall_isr
 .type syscall_isr, @function
+
+# MODIFIES: eax
 syscall_isr:
 push %ebp
 mov %esp, %ebp 
@@ -25,6 +27,8 @@ iret
 
 .global syscall
 .type syscall, @function
+
+#MODIFIES: None
 syscall:
 pushal
 cld
