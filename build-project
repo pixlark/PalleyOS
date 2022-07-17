@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+
+import subprocess
+import os.path
+
+CC="i686-elf-gcc"
+AS="i686-elf-as"
+FLAGS="-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g3 -std=c99 -Wno-unused-function"
+
+SRC_DIR="./src"
+BUILD_DIR="./build"
+ISO_DIR="./isodir"
+OBJ_DIR="./obj"
+
+QEMU_FLAGS=f"-m 64M -cdrom {BUILD_DIR}/palleyos.iso"
+
+#
+# ADD FILES HERE TO INCLUDE THEM IN THE KERNEL
+#
+SOURCES=[
+    "acpi.c", 
+    "ata_helper.s", 
+    "boot.s", 
+    "cpuid_fetch.s",
+    "cpuid.c",
+    "exceptions.c",
+    "fadt.c",
+    "gdt_helper.s",
+    "gdt.c",
+    "ide.c",
+    "idt.c",
+    "isr.s",
+    "kernel.c",
+    "keyboard_io.c",
+    "kshell.c",
+    "memory.c",
+    "pci.c",
+    "pic.c",
+    "rsdp.c",
+    "rsdt.c",
+    "sknyfs.c",
+    "syscall_helper.s",
+    "syscall.c",
+    "usermode.s",
+    "stdlib/kheap.c",
+    "stdlib/kstdio.c",
+    "stdlib/kstdlib.c",
+    "stdlib/tio.c",
+    "timer/PIT.s",
+    "timer/timer.c"
+]
+
+def concat(ls):
+    ''.join(ls)
+
+def run(command):
+    print(command)
+    subprocess.run(command, shell=True)
+
+def compile_asm_object(src, obj):
+    print(f"== Compiling ASM object {src} ==")
+    directory = os.path.dirname(obj)
+    run(f"mkdir -p {directory} && {AS} {src} -o {obj}")
+
+def compile_c_object(src, obj):
+    print(f"== Compiling C object {src} ==")
+    directory = os.path.dirname(obj)
+    run(f"mkdir -p {directory} && {CC} -c {src} -o {obj} {FLAGS}")
+
+def main():
+    # Construct all objects
+    objects = []
+    for source in SOURCES:
+        (base, ext) = os.path.splitext(source)
+        qualified_source = os.path.join(SRC_DIR, source)
+        obj = os.path.join(OBJ_DIR, base + ".o")
+        if ext.lower() == ".s":
+            compile_asm_object(qualified_source, obj)
+        elif ext.lower() == ".c":
+            compile_c_object(qualified_source, obj)
+        else:
+            raise Exception(f"Source file {source} with unknown extension {ext}")
+        objects.append(obj)
+    # Create raw kernel binary
+    run(f"{CC} -T {SRC_DIR}/linker.ld -o {BUILD_DIR}/palleyos.bin {FLAGS} {' '.join(objects)}")
+    # Check that multiboot is set up correctly
+    run("./check_multiboot.sh")
+    # Create ISO
+    run(f"""\
+mkdir -p {ISO_DIR}/boot/grub && \
+cp {SRC_DIR}/grub.cfg {ISO_DIR}/boot/grub/ && \
+cp {BUILD_DIR}/palleyos.bin {ISO_DIR}/boot/ && \
+grub-mkrescue -o {BUILD_DIR}/palleyos.iso {ISO_DIR}""")
+
+if __name__ == '__main__':
+    main()
