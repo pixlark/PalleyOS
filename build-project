@@ -6,7 +6,7 @@ import argparse
 
 CC="i686-elf-gcc"
 AS="i686-elf-as"
-FLAGS="-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g3 -std=c99 -Wno-unused-function"
+FLAGS="-ffreestanding -O0 -nostdlib -Wall -Wextra -Iinclude -g3 -std=c99"
 
 SRC_DIR="./src"
 BUILD_DIR="./build"
@@ -39,6 +39,7 @@ SOURCES=[
     "pic.c",
     "rsdp.c",
     "rsdt.c",
+    "serial.c",
     "sknyfs.c",
     "syscall_helper.s",
     "syscall.c",
