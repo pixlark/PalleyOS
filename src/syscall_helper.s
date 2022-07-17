@@ -7,31 +7,28 @@ syscall_isr:
 push %ebp
 mov %esp, %ebp 
 
-# return address  = 0x4 bytes
-# 0x20 (32) bytes for pushed registers
-# int (interrupt) command puts 0xC (12) bytes of info on stack
-# return address to syscall function = 0x4 bytes
-# 0x20 + 0x14 = 0x34 total bytes before argument passed into syscall();
+cmp $0x0, %eax
+jne next_sys_call
+push %ebx
+call tio_write
+jmp end
 
-mov %ebp, %eax
-add $0x38, %eax
-push %eax # pass pointer to first argument (va_list)
+next_sys_call:
 
-mov 0x34(%ebp), %eax  # pass syscall_index
-push %eax
-call syscall_try_call
+end:
 mov %ebp, %esp
 pop %ebp
 iret
 
 
-.global syscall
-.type syscall, @function
-
-#MODIFIES: None
-syscall:
+.global terminal_write
+.type terminal_write, @function
+terminal_write:
 pushal
 cld
-int $0x80 # must be same number as idt index for syscall
+mov 0x8(%ebp), %ebx
+mov $0x0, %eax
+int $0x80
 popal
 ret
+

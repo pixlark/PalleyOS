@@ -134,8 +134,8 @@ static void writeTSSEntry(uint16_t stack_segment, uint32_t kernel_stack_ptr) {
     tss_entry.esp0 = kernel_stack_ptr;
     
     tss_entry.cs = 0x0b;
-    tss_entry.ss = tss_entry.ds = 0x13;
-    tss_entry.es = tss_entry.fs = tss_entry.gs = 0x13;
+    tss_entry.ss = tss_entry.ds = 0x10;
+    tss_entry.es = tss_entry.fs = tss_entry.gs = 0x10;
 }
 
 // Called from an interrupt
@@ -154,29 +154,29 @@ void gdtInit() {
     ring0_code_entry = generateRing0CodeSegment();
     gdtSetGate(1, &ring0_code_entry);
     
-    GDTEntry* ring0_data_entry;
-    ring0_data_entry = &ring0_code_entry; 
-    ring0_data_entry->executable = 0;
-	gdtSetGate(2, ring0_data_entry);
+    GDTEntry ring0_data_entry;
+    ring0_data_entry = generateRing0CodeSegment(); 
+    ring0_data_entry.executable = 0;
+	gdtSetGate(2, &ring0_data_entry);
     
     GDTEntry ring3_code_entry;
     ring3_code_entry = generateRing3CodeSegment();
 	gdtSetGate(3, &ring3_code_entry);
     
-    GDTEntry* ring3_data_entry;
-    ring3_data_entry = &ring3_code_entry; 
-    ring3_data_entry->executable = 0;
-	gdtSetGate(4, ring3_data_entry);
+    GDTEntry ring3_data_entry;
+    ring3_data_entry = generateRing3CodeSegment();
+    ring3_data_entry.executable = 0;
+	gdtSetGate(4, &ring3_data_entry);
     
     // Note!!!! If you want to change the location of the TSS (i.e. not the 5th element)
     // in the GDT, you must change tssFlush to load the Task Register with the proper
     // offset
     
-    extern uint32_t stack_top;
-    kprintf("stack_top: 0x%x\n", &stack_top);
+    extern uintptr_t kernel_stack_top;
+    kprintf("kernel_stack_top: 0x%x\n", &kernel_stack_top);
     
     uint16_t kernel_stack_segment = 0x10;
-    uint32_t kernel_stack_ptr = 0x0;
+    uint32_t kernel_stack_ptr = &kernel_stack_top;
     
     GDTEntry gdt_tss = generateTSS();
     gdtSetGate(5, &gdt_tss);
@@ -197,7 +197,7 @@ void gdtInit() {
     
     get_gdt_register_value(&stored_gdt_loc);
     
-    if(stored_gdt_loc.limit == 0 && stored_gdt_loc.base != gp.base) {
+    if(stored_gdt_loc.limit == 0 || stored_gdt_loc.base != gp.base) {
         kprintf("GDT Location does not match\n");
         kprintf("GDT Base: 0x%x\n", gp);
         kprintf("Stored GDT Register: 0x%x\n", stored_gdt_loc.base);

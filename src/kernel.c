@@ -39,13 +39,12 @@ void testRealloc(int change) {
 
 extern void jump_to_ring3(void* function_ptr);
 extern void jump_to_user_mode();
+extern void terminal_write(const char *);
 
 void user_mode_func_test() {
     // Should call GDT Halt
     //__asm__ volatile("cli");
-    
-    cli();
-    syscall(KPRINTF_SYSCALL, "In User Mode?\n");
+    terminal_write("test string");
     while(1);
     return;
 }
@@ -90,8 +89,7 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     kprintf("user_mode_func_test: 0x%x\n", user_mode_func_test);
     kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
     
-    syscall(KPRINTF_SYSCALL, "Syscall from ring0, kernel\n");
     jump_to_ring3(user_mode_func_test);
     
-	kShellStart();
+	//kShellStart();
 }
