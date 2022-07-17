@@ -2,6 +2,7 @@
 
 import subprocess
 import os.path
+import argparse
 
 CC="i686-elf-gcc"
 AS="i686-elf-as"
@@ -68,29 +69,60 @@ def compile_c_object(src, obj):
     run(f"mkdir -p {directory} && {CC} -c {src} -o {obj} {FLAGS}")
 
 def main():
+    #
+    # Deal with command line arguments
+    #
+
+    argument_parser = argparse.ArgumentParser(description="Build PalleyOS")
+    argument_parser.add_argument('--run',        help='Run the OS after building',                  action='store_true')
+    argument_parser.add_argument('--run-server', help='Run the OS + run GDB server after building', action='store_true')
+    argument_parser.add_argument('--skip-build', help='Skip the actual build process',              action='store_true')
+    args = argument_parser.parse_args()
+
+    #
+    # Ensure base directories exist 
+    #
+    for d in [SRC_DIR, BUILD_DIR, OBJ_DIR, ISO_DIR]:
+        run(f"mkdir -p {d}")
+
+    #
+    # Make the OS
+    #
+
     # Construct all objects
-    objects = []
-    for source in SOURCES:
-        (base, ext) = os.path.splitext(source)
-        qualified_source = os.path.join(SRC_DIR, source)
-        obj = os.path.join(OBJ_DIR, base + ".o")
-        if ext.lower() == ".s":
-            compile_asm_object(qualified_source, obj)
-        elif ext.lower() == ".c":
-            compile_c_object(qualified_source, obj)
-        else:
-            raise Exception(f"Source file {source} with unknown extension {ext}")
-        objects.append(obj)
-    # Create raw kernel binary
-    run(f"{CC} -T {SRC_DIR}/linker.ld -o {BUILD_DIR}/palleyos.bin {FLAGS} {' '.join(objects)}")
-    # Check that multiboot is set up correctly
-    run("./check_multiboot.sh")
-    # Create ISO
-    run(f"""\
-mkdir -p {ISO_DIR}/boot/grub && \
-cp {SRC_DIR}/grub.cfg {ISO_DIR}/boot/grub/ && \
-cp {BUILD_DIR}/palleyos.bin {ISO_DIR}/boot/ && \
-grub-mkrescue -o {BUILD_DIR}/palleyos.iso {ISO_DIR}""")
+    if not args.skip_build:
+        objects = []
+        for source in SOURCES:
+            (base, ext) = os.path.splitext(source)
+            qualified_source = os.path.join(SRC_DIR, source)
+            obj = os.path.join(OBJ_DIR, base + ".o")
+            if ext.lower() == ".s":
+                compile_asm_object(qualified_source, obj)
+            elif ext.lower() == ".c":
+                compile_c_object(qualified_source, obj)
+            else:
+                raise Exception(f"Source file {source} with unknown extension {ext}")
+            objects.append(obj)
+        # Create raw kernel binary
+        run(f"{CC} -T {SRC_DIR}/linker.ld -o {BUILD_DIR}/palleyos.bin {FLAGS} {' '.join(objects)}")
+        # Check that multiboot is set up correctly
+        run("./check_multiboot.sh")
+        # Create ISO
+        run(f"""\
+    mkdir -p {ISO_DIR}/boot/grub && \
+    cp {SRC_DIR}/grub.cfg {ISO_DIR}/boot/grub/ && \
+    cp {BUILD_DIR}/palleyos.bin {ISO_DIR}/boot/ && \
+    grub-mkrescue -o {BUILD_DIR}/palleyos.iso {ISO_DIR}""")
+
+    #
+    # Run options
+    #
+
+    if args.run:
+        run(f"qemu-system-i386 -boot d -m 256M -cdrom {BUILD_DIR}/palleyos.iso -drive format=raw,file=./palleyos.img")
+
+    if args.run_server:
+        run(f"qemu-system-i386 -m 256M -cdrom {BUILD_DIR}/palleyos.iso -drive format=raw,file=./palleyos.img -s -S")
 
 if __name__ == '__main__':
     main()
