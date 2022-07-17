@@ -14,12 +14,12 @@ typedef struct Registers {
 
 extern void syscall_isr();
 
+typedef void(Syscall_Func_Pt*)(va_list args);
 
 typedef struct {
     size_t len;
     char data[];
 } String;
-
 
 void syscalls_init() {
     kprintf("INIT SYSCALLS\n");
