@@ -7,4 +7,5 @@
 #define TERMINAL_WRITE_SYSCALL 0x16
 
 void syscalls_init();
-extern void __attribute__((__cdecl__)) syscall(int syscall_index, ...);
+extern void terminal_write(const char*);
+

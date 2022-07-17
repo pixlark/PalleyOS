@@ -39,12 +39,11 @@ void testRealloc(int change) {
 
 extern void jump_to_ring3(void* function_ptr);
 extern void jump_to_user_mode();
-extern void terminal_write(const char *);
 
 void user_mode_func_test() {
     // Should call GDT Halt
-    //__asm__ volatile("cli");
-    terminal_write("test string");
+    char* test = "test str\0ingsaasas";
+    terminal_write(&test);
     while(1);
     return;
 }
