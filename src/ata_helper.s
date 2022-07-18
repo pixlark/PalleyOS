@@ -85,12 +85,14 @@ ataWriteToPort:
 	pop %ebp
 	ret
 
-.extern ideIRQHandler
+
+
+#.extern ideIRQHandler
 .global ideIRQISR
 .type ideIRQISR, @function
 ideIRQISR:
 	pushal
 	cld
-	call ideIRQHandler
+#call ideIRQHandler
 	popal
 	iret

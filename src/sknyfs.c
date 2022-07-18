@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#include <ide.h>
+#include <ata.h>
 #include <kstdio.h>
 #include <sknyfs.h>
 

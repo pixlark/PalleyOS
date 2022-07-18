@@ -9,7 +9,7 @@
 #include <kstdlib.h>
 #include <pci.h>
 #include <pic.h>
-#include <ide.h>
+#include <ata.h>
 #include <io.h>
 #include <kshell.h>
 #include <memory.h>
@@ -41,9 +41,8 @@ extern void jump_to_ring3(void* function_ptr);
 extern void jump_to_user_mode();
 
 void user_mode_func_test() {
-    // Should call GDT Halt
     char* test = "test str\0ingsaasas";
-    terminal_write(&test);
+    terminal_writ/*e(test);
     while(1);
     return;
 }
@@ -83,10 +82,12 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
 	loadCpuid();
 	cpuidPrintVendor();
     
-	pciCheckAllBuses();
+	//pciCheckAllBuses();
     
     kprintf("user_mode_func_test: 0x%x\n", user_mode_func_test);
     kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
+    
+    bool ide_initialized = ideInit();
     
     jump_to_ring3(user_mode_func_test);
     

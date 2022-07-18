@@ -114,8 +114,10 @@ void irqClearMask(uint8_t irq_line) {
 /* ===== Interrupts ===== */
 // Timer IRQ (PIT)
 extern void PITIRQ();
+
 // Keyboard Input (PC/2)
 extern void keyboardIsr(void);
+
 // Ide Controller DMA IRQ
 extern void ideIRQISR(void);
 

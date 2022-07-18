@@ -141,7 +141,7 @@ BAR4 + 8 is the Base of 8 I/O ports controls secondary channel's Bus Master IDE.
 #include <kstdlib.h>
 #include <kheap.h>
 #include <io.h>
-#include <ata.h>
+#include <ide.h>
 #include <timer.h>
 
 typedef struct {
@@ -187,8 +187,11 @@ typedef struct {
 
 extern void readStatus();
 
+bool interrupt_recieved = false;
+
+
 // Holds primary and secondary bus info for ata drives
-static ATA_Drive ata_drives[2];
+ATA_Drive ata_drives[2];
 
 static bool isFloatingBus() {
     uint8_t init_read_primary = inb(PBUS + ATA_REG_STATUS);
@@ -365,7 +368,7 @@ static void idePoll(ATA_Drive* drive){
     }
 }
 
-int32_t ataRead(ATA_Drive* drive, char* data, uint32_t num_sectors, uint32_t sector_num){
+int32_t __ataRead(ATA_Drive* drive, char* data, uint32_t num_sectors, uint32_t sector_num){
     if(drive->ata_type == ATAPI) {
         kprintf("ATAPI Writing not implemented\n");
         return 0;
@@ -461,9 +464,8 @@ int32_t ataRead(ATA_Drive* drive, char* data, uint32_t num_sectors, uint32_t sec
     return num_sectors*SECTOR_SIZE;
 }
 
-
-int32_t ataWrite(char* data, uint32_t num_sectors, uint32_t sector_num){
-    return __ataWrite(&ata_drives[0], data, num_sectors, sector_num);
+int32_t ataRead(char* data, uint32_t num_sectors, uint32_t sector_num){
+    return __ataRead(&ata_drives[0], data, num_sectors, sector_num);
 }
 
 static int32_t __ataWrite(ATA_Drive* drive, char* data, uint32_t num_sectors, uint32_t sector_num){
@@ -563,6 +565,10 @@ static int32_t __ataWrite(ATA_Drive* drive, char* data, uint32_t num_sectors, ui
     return num_sectors*SECTOR_SIZE;
 }
 
+int32_t ataWrite(char* data, uint32_t num_sectors, uint32_t sector_num){
+    return __ataWrite(&ata_drives[0], data, num_sectors, sector_num);
+}
+
 void ideIRQHandler() {
     interrupt_recieved = true;
     kprintf("written!!!!!!!!!!!!!!!!!!!!!\n");
@@ -596,6 +602,8 @@ bool ideInit() {
     }
     if(ataIdentify(&secondary_drive)) {
         kprintf("Secondary Bus is setup and ready to read/write\n");
+    }else{
+        kprintf("Secondary Bus is NOT setup\n");
     }
     
     return true;

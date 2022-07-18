@@ -176,7 +176,7 @@ void gdtInit() {
     kprintf("kernel_stack_top: 0x%x\n", &kernel_stack_top);
     
     uint16_t kernel_stack_segment = 0x10;
-    uint32_t kernel_stack_ptr = &kernel_stack_top;
+    uint32_t kernel_stack_ptr = (uint32_t)&kernel_stack_top;
     
     GDTEntry gdt_tss = generateTSS();
     gdtSetGate(5, &gdt_tss);

@@ -26,6 +26,14 @@ static inline uint8_t inb(uint16_t port) {
 	return ret;
 }
 
+static inline void inb_mem(uint16_t port, uint8_t* mem) {
+	uint8_t ret;
+	__asm__ volatile ( "inb %1, %0" 
+                      : "=a"(ret)
+                      : "Nd"(port) );
+    *mem = ret;
+}
+
 static inline uint16_t inw(uint16_t port) {
 	uint16_t ret;
 	__asm__ volatile ( "inw %1, %0" 
@@ -34,12 +42,28 @@ static inline uint16_t inw(uint16_t port) {
 	return ret;
 }
 
+static inline void inw_mem(uint16_t port, uint16_t* mem) {
+	uint16_t ret;
+	__asm__ volatile ( "inw %1, %0" 
+                      : "=a"(ret)
+                      : "Nd"(port) );
+    *mem = ret;
+}
+
 static inline uint32_t inl(uint16_t port) {
 	uint32_t ret;
 	__asm__ volatile ( "inl %1, %0" 
 					: "=a"(ret)
 					: "Nd"(port) );
 	return ret;
+}
+
+static inline void inl_mem(uint16_t port, uint32_t* mem) {
+	uint32_t ret;
+	__asm__ volatile ( "inl %1, %0" 
+                      : "=a"(ret)
+                      : "Nd"(port) );
+    *mem = ret;
 }
 
 static inline void ioWait(void) {

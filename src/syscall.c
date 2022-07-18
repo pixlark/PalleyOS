@@ -1,4 +1,3 @@
-
 #include <syscall.h>
 #include <idt.h>
 #include <kstdio.h>
@@ -14,7 +13,7 @@ typedef struct Registers {
 
 extern void syscall_isr();
 
-typedef void(Syscall_Func_Pt*)(va_list args);
+typedef void(*Syscall_Func_Pt)(va_list args);
 
 typedef struct {
     size_t len;
