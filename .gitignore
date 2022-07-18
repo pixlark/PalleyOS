@@ -66,3 +66,6 @@ test-isodir/
 
 *.4coder
 *.proj
+
+.vscode/
+.gdb_history

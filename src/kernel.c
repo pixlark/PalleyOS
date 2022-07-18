@@ -18,6 +18,7 @@
 #include <timer.h>
 #include <syscall.h>
 #include <tio.h>
+#include <serial.h>
 
 #if defined(__linux__)
 #error "You are not using the cross compiler, silly goose"
@@ -84,6 +85,8 @@ void kernelMain(MultibootInfo* multiboot_info, uint32_t magic) {
     
 	//pciCheckAllBuses();
     
+    serialInit();
+
     kprintf("user_mode_func_test: 0x%x\n", user_mode_func_test);
     kprintf("jump_to_ring3: 0x%x\n", jump_to_ring3);
     
